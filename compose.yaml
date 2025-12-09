@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  idealtex.mono:
+    build:
+      context: .
+    container_name: ${IDEALTEX_CONTAINER_NAME}
+    environment:
+      - IDEALTEX_MYSQL_CONNECTION_STRING=${IDEALTEX_MYSQL_CONNECTION_STRING}
+      - IDEALTEX_REDIS_STRING_CONNECTION=${IDEALTEX_REDIS_STRING_CONNECTION}
+      - INIT_ADMIN_USER_PASSWORD=${INIT_ADMIN_USER_PASSWORD}
+      - INIT_ADMIN_USER_LOGIN=${INIT_ADMIN_USER_LOGIN}
+    networks:
+      - idealtex-private-network
+    volumes:
+      - idealtex-mono-images:/app/images
+    ports:
+      - '9002:80'
+    depends_on:
+      - idealtex.mono.mysql
+      - idealtex.mono.redis
+
+  idealtex.mono.mysql:
+    image: bitnami/mysql:5.7.40
+    container_name: ${IDEALTEX_MYSQL_CONTAINER_NAME}
+    environment:
+      - MYSQL_ROOT_PASSWORD=${IDEALTEX_MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=${IDEALTEX_MYSQL_USER}
+      - MYSQL_PASSWORD=${IDEALTEX_MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${IDEALTEX_MYSQL_DATABASE}
+    networks:
+      - idealtex-private-network
+    volumes:
+      - idealtex-mono-mysql:/bitnami/mysql/data
+    ports:
+      - '3307:3306'
+
+  idealtex.mono.redis:
+    image: bitnami/redis:7.0.7
+    container_name: ${IDEALTEX_REDIS_CONTAINER_NAME}
+    environment:
+      - REDIS_PASSWORD=${IDEALTEX_REDIS_PASSWORD}
+    networks:
+      - idealtex-private-network
+    volumes:
+      - idealtex-mono-redis:/bitnami/redis/data
+    ports:
+      - '6379:6379'
+
+networks:
+  idealtex-private-network:
+    name: ${IDEALTEX_PRIVATE_NETWORK}
+    driver: bridge
+
+volumes:
+  idealtex-mono-mysql:
+    name: ${IDEALTEX_MYSQL_VOLUME}
+    driver: local
+  idealtex-mono-redis:
+    name: ${IDEALTEX_REDIS_VOLUME}
+    driver: local
+  idealtex-mono-images:
+    name: ${IDEALTEX_IMAGES_VOLUME}
+    driver: local
+

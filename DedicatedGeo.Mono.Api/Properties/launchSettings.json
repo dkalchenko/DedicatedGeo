@@ -1,0 +1,30 @@
+﻿{
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:20186",
+      "sslPort": 44329
+    }
+  },
+  "profiles": {
+    "Idealtex.Mono.Api": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5089",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "IDEALTEX_MYSQL_CONNECTION_STRING": "Host=localhost;Port=3307;User ID=test;Password=test;Database=test",
+        "IDEALTEX_REDIS_STRING_CONNECTION": "localhost,password=test",
+        "PROM_API_KEY": "test"
+      }
+    },
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

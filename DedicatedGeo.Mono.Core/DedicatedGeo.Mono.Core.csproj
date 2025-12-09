@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="../build.targets"/>
+
+    <ItemGroup>
+        <PackageReference Include="EntityFrameworkCore.Exceptions.MySQL.Pomelo" Version="8.1.3" />
+        <PackageReference Include="FluentValidation" Version="12.1.1" />
+        <PackageReference Include="MediatR" Version="14.0.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="6.0.0-preview.4.21253.5" />
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.1" />
+        <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.15.0" />
+        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\DedicatedGeo.Mono.Common\DedicatedGeo.Mono.Common.csproj" />
+        <ProjectReference Include="..\DedicatedGeo.Mono.Core.Abstractions\DedicatedGeo.Mono.Core.Abstractions.csproj" />
+        <ProjectReference Include="..\DedicatedGeo.Mono.Dal.Abstractions\DedicatedGeo.Mono.Dal.Abstractions.csproj" />
+        <ProjectReference Include="..\DedicatedGeo.Mono.Dtos\DedicatedGeo.Mono.Dtos.csproj" />
+    </ItemGroup>
+
+</Project>

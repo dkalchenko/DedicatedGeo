@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="../build.targets"/>
+
+    <ItemGroup>
+      <PackageReference Include="BCrypt.Net-Next.StrongName" Version="4.0.3" />
+    </ItemGroup>
+
+</Project>

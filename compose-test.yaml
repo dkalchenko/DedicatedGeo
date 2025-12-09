@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+
+  idealtex.mono.unittest:
+    build:
+      context: .
+      dockerfile: Dockerfile.unittest
+    container_name: ${IDEALTEX_CONTAINER_NAME_UNIT_TEST}
+    environment:
+      - IDEALTEX_MYSQL_CONNECTION_STRING=${IDEALTEX_MYSQL_CONNECTION_STRING_TEST}
+      - IDEALTEX_REDIS_STRING_CONNECTION=${IDEALTEX_REDIS_STRING_CONNECTION_TEST}
+    networks:
+      - idealtex-private-network
+
+  idealtex.mono.integrationtest:
+    build:
+      context: .
+      dockerfile: Dockerfile.integrationtest
+    container_name: ${IDEALTEX_CONTAINER_NAME_INTEGRATION_TEST}
+    environment:
+      - IDEALTEX_MYSQL_CONNECTION_STRING=${IDEALTEX_MYSQL_CONNECTION_STRING_TEST}
+      - IDEALTEX_REDIS_STRING_CONNECTION=${IDEALTEX_REDIS_STRING_CONNECTION_TEST}
+      - INIT_ADMIN_USER_PASSWORD=${INIT_ADMIN_USER_PASSWORD}
+      - INIT_ADMIN_USER_LOGIN=${INIT_ADMIN_USER_LOGIN}
+    networks:
+      - idealtex-private-network
+    depends_on:
+      - idealtex.mono.mysql
+      - idealtex.mono.redis
+
+  idealtex.mono.mysql:
+    image: bitnami/mysql:5.7.40
+    container_name: ${IDEALTEX_MYSQL_CONTAINER_NAME_TEST}
+    environment:
+      - MYSQL_ROOT_PASSWORD=${IDEALTEX_MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=${IDEALTEX_MYSQL_USER}
+      - MYSQL_PASSWORD=${IDEALTEX_MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${IDEALTEX_MYSQL_DATABASE}
+    networks:
+      - idealtex-private-network
+    volumes:
+      - idealtex-mono-mysql:/bitnami/mysql/data
+    ports:
+      - '3308:3307'
+
+  idealtex.mono.redis:
+    image: bitnami/redis:7.0.7
+    container_name: ${IDEALTEX_REDIS_CONTAINER_NAME_TEST}
+    environment:
+      - REDIS_PASSWORD=${IDEALTEX_REDIS_PASSWORD}
+    networks:
+      - idealtex-private-network
+    volumes:
+      - idealtex-mono-redis:/bitnami/redis/data
+    ports:
+      - '6379:6379'
+
+networks:
+  idealtex-private-network:
+    name: ${IDEALTEX_PRIVATE_NETWORK_TEST}
+    driver: bridge
+
+volumes:
+  idealtex-mono-mysql:
+    name: ${IDEALTEX_MYSQL_VOLUME_TEST}
+    driver: local
+  idealtex-mono-redis:
+    name: ${IDEALTEX_REDIS_VOLUME_TEST}
+    driver: local
+  idealtex-mono-images:
+    name: ${IDEALTEX_IMAGES_VOLUME_TEST}
+    driver: local
+

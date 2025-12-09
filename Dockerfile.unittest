@@ -1,0 +1,8 @@
+﻿FROM mcr.microsoft.com/dotnet/sdk:9.0 
+WORKDIR /src
+COPY build.targets .
+COPY ["Idealtex.Mono.UnitTests/Idealtex.Mono.UnitTests.csproj", "Idealtex.Mono.UnitTests/"]
+RUN dotnet restore "Idealtex.Mono.UnitTests/Idealtex.Mono.UnitTests.csproj"
+COPY . .
+WORKDIR "/src/Idealtex.Mono.UnitTests"
+ENTRYPOINT ["dotnet", "test", "Idealtex.Mono.UnitTests.csproj", "-v", "quiet", "--nologo", "-l:\"console;verbosity=normal\""]

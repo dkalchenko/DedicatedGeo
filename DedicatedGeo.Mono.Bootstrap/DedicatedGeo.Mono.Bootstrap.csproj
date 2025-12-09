@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="../build.targets"/>
+
+    <ItemGroup>
+        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+        <PackageReference Include="HybridModelBinding" Version="0.18.1-alpha.5"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.1" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.1" />
+        <PackageReference Include="NLog" Version="6.0.7" />
+        <PackageReference Include="NLog.Extensions.Logging" Version="6.1.0" />
+        <PackageReference Include="Scrutor.AspNetCore" Version="3.3.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\DedicatedGeo.Mono.Common\DedicatedGeo.Mono.Common.csproj" />
+        <ProjectReference Include="..\DedicatedGeo.Mono.Core.Abstractions\DedicatedGeo.Mono.Core.Abstractions.csproj" />
+        <ProjectReference Include="..\DedicatedGeo.Mono.Core\DedicatedGeo.Mono.Core.csproj" />
+        <ProjectReference Include="..\DedicatedGeo.Mono.Dal.Abstractions\DedicatedGeo.Mono.Dal.Abstractions.csproj" />
+        <ProjectReference Include="..\DedicatedGeo.Mono.Dal\DedicatedGeo.Mono.Dal.csproj" />
+    </ItemGroup>
+
+</Project>

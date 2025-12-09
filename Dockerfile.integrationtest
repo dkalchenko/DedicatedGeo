@@ -1,0 +1,8 @@
+﻿FROM mcr.microsoft.com/dotnet/sdk:9.0
+WORKDIR /src
+COPY build.targets .
+COPY ["Idealtex.Mono.IntegrationTests/Idealtex.Mono.IntegrationTests.csproj", "Idealtex.Mono.IntegrationTests/"]
+RUN dotnet restore "Idealtex.Mono.IntegrationTests/Idealtex.Mono.IntegrationTests.csproj"
+COPY . .
+WORKDIR "/src/Idealtex.Mono.IntegrationTests"
+ENTRYPOINT ["dotnet", "test", "Idealtex.Mono.IntegrationTests.csproj", "-v", "quiet", "--nologo", "-l:\"console;verbosity=normal\""]
