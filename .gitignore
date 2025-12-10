@@ -265,3 +265,4 @@ FakesAssemblies/
 # Rider temp files
 .idea/
 **/Idealtex.Mono.Api/images
+*.db*

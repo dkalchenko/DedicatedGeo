@@ -2,14 +2,32 @@
 
 @{
     ViewBag.Title = Model.Title;
+    var pointsJson = System.Text.Json.JsonSerializer.Serialize(Model.Points ?? System.Linq.Enumerable.Empty<object>());
 }
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<div id="map" style="height:500px;"></div>
+<style>
+    html, body, #map { height: 100vh; margin: 0; padding: 0; }
+    #deleteBtn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 1000;
+        background: rgba(255,255,255,0.95);
+        border: 1px solid #ccc;
+        padding: 8px 12px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-family: sans-serif;
+    }
+</style>
+
+<div id="map"></div>
+<button id="deleteBtn">Delete all points</button>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    const points = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Points));
+    const points = @Html.Raw(pointsJson);
     const latlngs = points.map(p => [p.Latitude, p.Longitude]);
 
     const map = L.map('map');
@@ -24,9 +42,41 @@
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
+    // keep references so we can remove them on delete
+    const markers = [];
+    let pathLayer = null;
+
     if (latlngs.length) {
-        L.polyline(latlngs, { color: 'blue' }).addTo(map);
-        latlngs.forEach(l => L.marker(l).addTo(map));
+        pathLayer = L.polyline(latlngs, { color: 'blue' }).addTo(map);
+        latlngs.forEach(l => markers.push(L.marker(l).addTo(map)));
         map.fitBounds(latlngs);
     }
+
+    document.getElementById('deleteBtn').addEventListener('click', async () => {
+        if (!confirm('Delete all points? This cannot be undone.')) return;
+
+        try {
+            const res = await fetch('/v1/public/location/points', {
+                method: 'DELETE',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (res.ok || res.status === 204) {
+                // optionally remove markers locally then refresh the page
+                markers.forEach(m => map.removeLayer(m));
+                markers.length = 0;
+                if (pathLayer) {
+                    map.removeLayer(pathLayer);
+                    pathLayer = null;
+                }
+                // reload the page to reflect server-side changes
+                location.reload();
+            } else {
+                const text = await res.text();
+                alert('Failed to delete points: ' + (text || res.status));
+            }
+        } catch (err) {
+            alert('Request failed: ' + err);
+        }
+    });
 </script>

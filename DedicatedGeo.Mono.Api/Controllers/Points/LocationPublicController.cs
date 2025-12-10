@@ -17,7 +17,14 @@ public class LocationPublicController: Controller
     }
 
     [HttpPost("points")]
-    public async Task<IActionResult> PostLogin([FromHybrid] PostLocationPointsPublicRequest request)
+    public async Task<IActionResult> PostPoints([FromHybrid] PostLocationPointsPublicRequest request)
+    {
+        await _sender.Send(request);
+        return Ok();
+    }
+
+    [HttpDelete("points")]
+    public async Task<IActionResult> DeletePoints([FromHybrid] DeleteLocationPointsPublicRequest request)
     {
         await _sender.Send(request);
         return Ok();
