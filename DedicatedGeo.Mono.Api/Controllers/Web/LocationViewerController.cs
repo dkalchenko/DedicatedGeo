@@ -18,11 +18,8 @@ public class LocationViewerController: Controller
     [Route("/")]
     public async Task<IActionResult> Index()
     {
-        var view = await _sender.Send(new GetLocationPointsPublicRequest());
-        
         return View(new LocationPathViewDto
         {
-            Points = view.Points,
             Title = "Location Viewer"
         });
     }    

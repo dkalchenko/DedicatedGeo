@@ -21,11 +21,12 @@ public class GetLocationPublicRequestHandler: IRequestHandler<GetLocationPointsP
         var to = request.To;
         var from = request.From;
         var points = await _repository.LocationPoints
+            .Where(x => x.CreatedAt >= from && x.CreatedAt <= to)
             .ToListAsync(cancellationToken: cancellationToken);
         
         return new GetLocationPointsPublicResponse
         {
-            Points = points.Select(x => x.Point.Coordinate.ToLocationPointDto()).ToList()
+            Points = points.Select(x => x.ToLocationPointDto()).ToList()
         };
     }
 }

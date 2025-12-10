@@ -2,7 +2,6 @@
 
 @{
     ViewBag.Title = Model.Title;
-    var pointsJson = System.Text.Json.JsonSerializer.Serialize(Model.Points ?? System.Linq.Enumerable.Empty<object>());
 }
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -13,7 +12,8 @@
         position: absolute;
         top: 12px;
         right: 120px;
-        z-index: 1101;
+        /* place the Details button under the backdrop (backdrop z-index is 1100) */
+        z-index: 1098;
         background: linear-gradient(135deg,#7c5cff,#5ab3ff);
         color: white;
         border: none;
@@ -71,8 +71,24 @@
     .section h4{ margin:0 0 8px 0; font-size:13px; color:#dfe8f7; display:flex;justify-content:space-between; align-items:center; }
     .section .count{ font-size:12px; color:#9aa4b2; }
 
-    .points-container{ display:flex; gap:8px; overflow:auto; padding-bottom:6px; }
-    .group{ min-width:150px; flex:1; display:flex; flex-direction:column; gap:8px; }
+    /* Points list: stack vertically, scrollable, cap at 70% of viewport height */
+    .points-container{
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+        overflow-y:auto;
+        overflow-x:hidden;
+        max-height:70vh; /* cap height to 70% of viewport */
+        padding-bottom:6px;
+        width:100%;
+    }
+    /* Groups will render as full-width stacked columns (JS can still populate 3 groups) */
+    .group{
+        width:100%;
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+    }
     .point{ background: rgba(255,255,255,0.03); border-radius:8px; padding:8px; font-size:12px; color:#e6eef8; box-shadow:0 4px 14px rgba(4,6,12,0.35); border:1px solid rgba(255,255,255,0.02); }
     .point .meta{ color:#9aa4b2; font-size:11px; margin-top:6px; }
 
@@ -133,9 +149,6 @@
         <h4>Points <span id="pointsCount" class="count"></span></h4>
 
         <div class="points-container" id="pointsContainer">
-            <div class="group" id="group1"></div>
-            <div class="group" id="group2"></div>
-            <div class="group" id="group3"></div>
         </div>
     </div>
 
@@ -167,221 +180,146 @@
     </div>
 </aside>
 
+<!-- scripts removed as requested -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // initial points provided by server
-    const points = @Html.Raw(pointsJson);
-    const safePoints = Array.isArray(points) ? points : [];
-    const latlngs = safePoints.map(p => [p.Latitude ?? p.latitude ?? p.Lat ?? 0, p.Longitude ?? p.Longitude ?? p.Longitude ?? p.Longitude ?? 0]);
+    // Map initialization
+    const map = L.map('map').setView([0,0],2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
 
-    const map = L.map('map');
-    if (latlngs.length) map.setView(latlngs[0], 13); else map.setView([0,0], 2);
+    // state
+    let mapMarkers = [];
+    let mapPath = null;
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+    // helpers
+    const toNum = v => { if (v === undefined || v === null) return null; const n = Number(String(v).replace(',', '.')); return Number.isFinite(n) ? n : null; };
 
-    const markers = [];
-    let pathLayer = null;
-    if (latlngs.length) {
-        pathLayer = L.polyline(latlngs, { color: 'blue' }).addTo(map);
-        latlngs.forEach(l => markers.push(L.marker(l).addTo(map)));
-        map.fitBounds(latlngs);
-    }
-
-    // --- NEW: periodic refresh of points and datetime picker handling ---
-    const fromInput = document.getElementById('fromPicker');
-    const toInput = document.getElementById('toPicker');
-
+    // produce a datetime-local string like YYYY-MM-DDTHH:mm:ss
     function toDateTimeLocal(dt) {
-        const pad = n => String(n).padStart(2,'0');
-        const year = dt.getFullYear();
-        const month = pad(dt.getMonth()+1);
-        const day = pad(dt.getDate());
-        const hours = pad(dt.getHours());
-        const minutes = pad(dt.getMinutes());
-        const seconds = pad(dt.getSeconds());
-        // produce a datetime-local compatible string with seconds
-        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+        const pad = n => String(n).padStart(2, '0');
+        return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
     }
 
-    // Convert a `datetime-local` input value (local time) to a UTC ISO string.
+    // convert datetime-local (local time) to ISO string (UTC) for API
     function localToISOString(localValue) {
         if (!localValue) return '';
-        // match YYYY-MM-DDTHH:mm or YYYY-MM-DDTHH:mm:ss
         const m = localValue.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
-        if (!m) {
-            // fallback to Date parsing
-            try { return new Date(localValue).toISOString(); } catch(e) { return ''; }
-        }
-        const year = Number(m[1]);
-        const month = Number(m[2]) - 1;
-        const day = Number(m[3]);
-        const hour = Number(m[4]);
-        const minute = Number(m[5]);
-        const second = Number(m[6] || '0');
-        // construct a Date using local components (this creates a local-time Date)
-        const dt = new Date(year, month, day, hour, minute, second);
-        return dt.toISOString(); // convert to UTC ISO
+        if (!m) return new Date(localValue).toISOString();
+        const y = Number(m[1]); const mo = Number(m[2]) - 1; const d = Number(m[3]);
+        const hh = Number(m[4]); const mm = Number(m[5]); const ss = Number(m[6] || '0');
+        const dt = new Date(y, mo, d, hh, mm, ss);
+        return dt.toISOString();
     }
 
-    function setDefaultRange(auto=true) {
+    // set default time range: now-1h .. now, mark inputs as auto so they advance unless user edits
+    function setDefaultRange() {
         const now = new Date();
         const oneHourAgo = new Date(now.getTime() - 60*60*1000);
-        if (auto) {
-            fromInput.value = toDateTimeLocal(oneHourAgo);
-            toInput.value = toDateTimeLocal(now);
-            fromInput.dataset.auto = 'true';
-            toInput.dataset.auto = 'true';
+        const fromEl = document.getElementById('fromPicker');
+        const toEl = document.getElementById('toPicker');
+        if (fromEl && toEl) {
+            if (!fromEl.dataset.userEdited) fromEl.value = toDateTimeLocal(oneHourAgo);
+            if (!toEl.dataset.userEdited) toEl.value = toDateTimeLocal(now);
+            if (!fromEl.dataset.userEdited) fromEl.dataset.auto = 'true';
+            if (!toEl.dataset.userEdited) toEl.dataset.auto = 'true';
         }
     }
 
-    // mark inputs as manual on user edit
-    [fromInput, toInput].forEach(inp => {
-        inp.addEventListener('input', () => {
-            inp.dataset.auto = 'false';
-        });
-    });
-
-    // update map markers / path with given points array
-    function updateMapWithPoints(pts) {
-        // clear markers
-        markers.forEach(m => map.removeLayer(m));
-        markers.length = 0;
-        if (pathLayer) { map.removeLayer(pathLayer); pathLayer = null; }
-
-        const latlngs = (Array.isArray(pts) ? pts : []).map(p => [p.Latitude ?? p.latitude ?? p.lat ?? 0, p.Longitude ?? p.longitude ?? p.lon ?? 0]);
-        if (latlngs.length) {
-            pathLayer = L.polyline(latlngs, { color: 'blue' }).addTo(map);
-            latlngs.forEach(l => markers.push(L.marker(l).addTo(map)));
-            try { map.fitBounds(latlngs); } catch(e) { /* ignore */ }
+    // build the API URL using current datetime inputs (convert to ISO)
+    function buildUrl() {
+        let url = '/v1/public/location/points';
+        const params = [];
+        const fromEl = document.getElementById('fromPicker');
+        const toEl = document.getElementById('toPicker');
+        if (fromEl && fromEl.value) {
+            const iso = localToISOString(fromEl.value);
+            if (iso) params.push('from=' + encodeURIComponent(iso));
         }
+        if (toEl && toEl.value) {
+            const iso = localToISOString(toEl.value);
+            if (iso) params.push('to=' + encodeURIComponent(iso));
+        }
+        if (params.length) url += '?' + params.join('&');
+        return url;
     }
 
-    async function refreshPoints() {
+    // clear markers and polyline
+    function clearMap() {
+        mapMarkers.forEach(m => { try { map.removeLayer(m); } catch(e) {} });
+        mapMarkers = [];
+        if (mapPath) { try { map.removeLayer(mapPath); } catch(e) {} mapPath = null; }
+    }
+
+    // fetch points and render them
+    async function loadPoints() {
         try {
-            // if inputs are auto, advance them to now / now-1h so default follows time
-            const autoFrom = fromInput.dataset.auto === 'true';
-            const autoTo = toInput.dataset.auto === 'true';
+            // if both pickers are still auto, advance them before fetch so default window follows time
+            const fromEl = document.getElementById('fromPicker');
+            const toEl = document.getElementById('toPicker');
             const now = new Date();
-            if (autoFrom && autoTo) {
+            if (fromEl && toEl && fromEl.dataset.auto === 'true' && toEl.dataset.auto === 'true') {
                 const oneHourAgo = new Date(now.getTime() - 60*60*1000);
-                fromInput.value = toDateTimeLocal(oneHourAgo);
-                toInput.value = toDateTimeLocal(now);
-            } else if (autoTo && !autoFrom) {
-                // if user changed from but to is auto, keep from and advance to
-                toInput.value = toDateTimeLocal(now);
+                fromEl.value = toDateTimeLocal(oneHourAgo);
+                toEl.value = toDateTimeLocal(now);
+            } else if (toEl && toEl.dataset.auto === 'true') {
+                toEl.value = toDateTimeLocal(now);
             }
 
-            // build query params from inputs
-            // display in picker is local time; convert to UTC ISO for the API
-            const fromIso = fromInput.value ? localToISOString(fromInput.value) : '';
-            const toIso = toInput.value ? localToISOString(toInput.value) : '';
-            let url = '/v1/public/location/points';
-            const params = [];
-            if (fromIso) params.push('from=' + encodeURIComponent(fromIso));
-            if (toIso) params.push('to=' + encodeURIComponent(toIso));
-            if (params.length) url += '?' + params.join('&');
-
+            const url = buildUrl();
             const resp = await fetch(url, { cache: 'no-store' });
             if (!resp.ok) return;
-            const pts = await resp.json();
+            const data = await resp.json();
+            // support both array response and { points: [...] }
+            const pts = Array.isArray(data) ? data : (Array.isArray(data?.points) ? data.points : []);
+            if (!pts.length) { clearMap(); return; }
 
-            // update map
-            updateMapWithPoints(pts);
+            clearMap();
 
-            // if sidebar is open, update groups and counts as well
-            if (sidebar.classList.contains('open')) {
-                // reuse existing grouping logic
-                const groups = [[],[],[]];
-                (Array.isArray(pts) ? pts : []).forEach((p, i) => groups[i % 3].push(p));
-                ['group1','group2','group3'].forEach((id, idx) => {
-                    const el = document.getElementById(id);
-                    if (!el) return;
-                    el.innerHTML = '';
-                    groups[idx].forEach(pt => {
-                        const lat = pt.Latitude ?? pt.latitude ?? pt.lat ?? pt.latLng?.lat ?? '—';
-                        const lon = pt.Longitude ?? pt.longitude ?? pt.lon ?? pt.lng ?? pt.latLng?.lng ?? '—';
-                        const created = pt.CreatedAt ?? pt.createdAt ?? pt.created_at ?? pt.timestamp ?? pt.time ?? '—';
-                        const div = document.createElement('div');
-                        div.className = 'point';
-                        div.innerHTML = `<div><strong>Lat:</strong> ${lat}</div>
-                                         <div><strong>Lon:</strong> ${lon}</div>
-                                         <div class="meta">${new Date(created).toLocaleString()}</div>`;
-                        el.appendChild(div);
-                    });
-                });
-                document.getElementById('pointsCount').textContent = (Array.isArray(pts) ? pts.length : 0) ? (pts.length + ' total') : '';
-                // update last fetched display
-                const lf = document.getElementById('lastFetched'); if (lf) lf.textContent = new Date().toLocaleTimeString();
+            const latlngs = [];
+            pts.forEach(p => {
+                const lat = toNum(p.Latitude ?? p.latitude ?? p.lat ?? p.latDeg ?? p.lat_deg);
+                const lon = toNum(p.Longitude ?? p.longitude ?? p.lon ?? p.lonDeg ?? p.lon_deg);
+                if (lat == null || lon == null) return;
+                latlngs.push([lat, lon]);
+                const m = L.circleMarker([lat, lon], { radius: 5, color: '#1e88e5', fillColor: '#1e88e5', fillOpacity: 0.95 }).addTo(map);
+                const created = p.CreatedAt ?? p.createdAt ?? p.timestamp ?? p.time ?? null;
+                m.bindPopup(`<div style="min-width:140px"><div><strong>Lat:</strong> ${lat}</div><div><strong>Lon:</strong> ${lon}</div>${created ? `<div style='font-size:12px;color:#9aa4b2'>${new Date(created).toLocaleString()}</div>` : ''}</div>`);
+                mapMarkers.push(m);
+            });
+
+            if (latlngs.length) {
+                mapPath = L.polyline(latlngs, { color: 'blue' }).addTo(map);
+                try { map.fitBounds(latlngs); } catch(e) { /* ignore */ }
             }
-
         } catch (e) {
-            console.error('refreshPoints failed', e);
+            console.error('loadPoints error', e);
         }
     }
 
-    // --- removed immediate polling start here and will start after sidebar elements are available ---
-
-    // Sidebar controls
-    const openBtn = document.getElementById('openSidebar');
-    const closeBtn = document.getElementById('closeSidebar');
-    const sidebar = document.getElementById('sidebar');
-    const backdrop = document.getElementById('backdrop');
-    const deleteBtn = document.getElementById('deleteAll');
-
-    openBtn.addEventListener('click', () => {
-        sidebar.classList.add('open');
-        backdrop.classList.add('open');
-        sidebar.setAttribute('aria-hidden','false');
-        // hide the Details button while sidebar is open to avoid duplicate controls
-        openBtn.style.display = 'none';
-        loadSidebar();
-    });
-    closeBtn.addEventListener('click', () => {
-        sidebar.classList.remove('open');
-        backdrop.classList.remove('open');
-        sidebar.setAttribute('aria-hidden','true');
-        // restore the Details button when sidebar is closed
-        openBtn.style.display = '';
-    });
-    backdrop.addEventListener('click', () => {
-        sidebar.classList.remove('open');
-        backdrop.classList.remove('open');
-        sidebar.setAttribute('aria-hidden','true');
-        // restore the Details button when clicking backdrop
-        openBtn.style.display = '';
+    // wire up pickers: mark user-edited and prevent auto-advance
+    const fromEl = document.getElementById('fromPicker');
+    const toEl = document.getElementById('toPicker');
+    [fromEl, toEl].forEach(el => {
+        if (!el) return;
+        el.dataset.auto = 'true';
+        el.addEventListener('input', () => { el.dataset.auto = 'false'; el.dataset.userEdited = 'true'; loadPoints(); });
     });
 
-    function fmtDate(s) { try { const d = new Date(s); return isNaN(d.getTime()) ? (s ?? '—') : d.toLocaleString(); } catch(e) { return s ?? '—'; } }
+    // set initial default range and start 2s polling
+    setDefaultRange();
+    loadPoints();
+    setInterval(loadPoints, 2000);
 
-    // set default range and start polling now that sidebar & inputs exist
-    setDefaultRange(true);
-    // initial refresh immediately
-    refreshPoints();
-    // then poll every 2 seconds
-    const refreshInterval = setInterval(refreshPoints, 2000);
+    // keep minimal sidebar handlers
+    document.getElementById('openSidebar').addEventListener('click', () => { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('backdrop').classList.toggle('open'); });
+    document.getElementById('closeSidebar').addEventListener('click', () => { document.getElementById('sidebar').classList.remove('open'); document.getElementById('backdrop').classList.remove('open'); });
 
-    // delete button inside sidebar
-    deleteBtn.addEventListener('click', async () => {
-        if (!confirm('Delete all location points? This cannot be undone.')) return;
-        deleteBtn.disabled = true;
-        deleteBtn.textContent = 'Deleting...';
-        try {
-            const resp = await fetch('/v1/public/location/points', { method: 'DELETE' });
-            if (!resp.ok && resp.status !== 204) {
-                const txt = await resp.text();
-                alert('Delete failed: ' + (txt || resp.status));
-                deleteBtn.disabled = false;
-                deleteBtn.textContent = 'Delete all points';
-                return;
-            }
-            location.reload();
-        } catch (e) {
-            alert('Delete error');
-            deleteBtn.disabled = false;
-            deleteBtn.textContent = 'Delete all points';
-        }
+    // close sidebar when clicking outside of it
+    document.getElementById('backdrop').addEventListener('click', () => { document.getElementById('sidebar').classList.remove('open'); document.getElementById('backdrop').classList.remove('open'); });
+
+    // delete handler (keeps existing behavior)
+    document.getElementById('deleteAll').addEventListener('click', async () => {
+        if (!confirm('Delete all points? This action cannot be undone.')) return;
+        try { await fetch('/v1/public/location/points', { method: 'DELETE', cache: 'no-store' }); loadPoints(); } catch (e) { console.warn('delete error', e); }
     });
 </script>
