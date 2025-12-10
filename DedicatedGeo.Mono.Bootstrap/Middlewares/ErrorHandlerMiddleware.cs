@@ -45,7 +45,7 @@ public class ErrorHandlerMiddleware
                 exception.Message = e.Errors.First().ErrorMessage;
                 exception.StatusCode = HttpStatusCode.BadRequest;
                 break;
-            case IdealtexRequestException e:
+            case RequestException e:
                 exception.Message = e.Message;
                 exception.StatusCode = e.StatusCode ?? HttpStatusCode.InternalServerError;
                 exception.StackTrace = appSettings.isProd ? "" : e.StackTrace;

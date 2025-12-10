@@ -16,6 +16,12 @@ public class LocationPublicController: Controller
         _sender = sender.ThrowIfNull();
     }
 
+    [HttpGet("points")]
+    public async Task<IActionResult> PostPoints([FromHybrid] GetLocationPointsPublicRequest request)
+    {
+        return Ok(await _sender.Send(request));
+    }
+
     [HttpPost("points")]
     public async Task<IActionResult> PostPoints([FromHybrid] PostLocationPointsPublicRequest request)
     {

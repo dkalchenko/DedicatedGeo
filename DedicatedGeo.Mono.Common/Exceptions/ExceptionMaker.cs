@@ -37,9 +37,9 @@ public class ExceptionMaker
     }
 
 
-    public IdealtexRequestException GetException()
+    public RequestException GetException()
     {
-        return new IdealtexRequestException(
+        return new RequestException(
             _message,
             _exception,
             _statusCode,

@@ -1,6 +1,10 @@
-﻿using EntityFramework.Exceptions.MySQL.Pomelo;
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
+using EntityFramework.Exceptions.MySQL.Pomelo;
 using DedicatedGeo.Mono.Dal.Abstractions;
 using DedicatedGeo.Mono.Models;
+using DedicatedGeo.Mono.Models.Device;
 using DedicatedGeo.Mono.Models.Location;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -17,6 +21,7 @@ public class DatabaseRepository : DbContext, IDatabaseRepository
     }
 
     public DbSet<LocationPoint> LocationPoints { get; init; }
+    public DbSet<DeviceStatus> DeviceStatuses { get; init; }
 
     public virtual async Task SaveChangesAsync(CancellationToken? cancellationToken)
     {

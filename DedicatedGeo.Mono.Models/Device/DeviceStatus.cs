@@ -1,10 +1,8 @@
-﻿namespace DedicatedGeo.Mono.Dtos.Web;
+﻿namespace DedicatedGeo.Mono.Models.Device;
 
-public class LocationPathViewDto
+public class DeviceStatus
 {
-    public string Title { get; set; } = null!;
-    public IEnumerable<LocationPointDto> Points { get; set; } = null!;
-    
+    public Guid DeviceStatusId { get; set; }
     public int BatteryLevel { get; set; }
     public bool IsInAlarm { get; set; }
     public bool IsButtonPressed { get; set; }

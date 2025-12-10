@@ -2,9 +2,9 @@
 
 namespace DedicatedGeo.Mono.Common.Extensions;
 
-public class IdealtexRequestException : HttpRequestException
+public class RequestException : HttpRequestException
 {
-    public IdealtexRequestException(string? message, Exception? inner, HttpStatusCode? statusCode, int errorCode) :
+    public RequestException(string? message, Exception? inner, HttpStatusCode? statusCode, int errorCode) :
         base(message, inner, statusCode)
     {
         ErrorCode = errorCode;

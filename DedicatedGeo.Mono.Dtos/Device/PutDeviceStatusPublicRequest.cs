@@ -1,10 +1,9 @@
-﻿namespace DedicatedGeo.Mono.Dtos.Web;
+﻿using MediatR;
 
-public class LocationPathViewDto
+namespace DedicatedGeo.Mono.Dtos.Device;
+
+public class PutDeviceStatusPublicRequest: IRequest
 {
-    public string Title { get; set; } = null!;
-    public IEnumerable<LocationPointDto> Points { get; set; } = null!;
-    
     public int BatteryLevel { get; set; }
     public bool IsInAlarm { get; set; }
     public bool IsButtonPressed { get; set; }

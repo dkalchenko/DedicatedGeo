@@ -25,7 +25,7 @@ public class PostLocationPointsPublicRequestHandler: IRequestHandler<PostLocatio
             locationPoint => new LocationPoint
             {
                 Point = locationPoint.ToPoint(),
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTimeOffset.FromUnixTimeSeconds(locationPoint.CreatedAt).UtcDateTime
             }
             ).ToList();
         _repository.LocationPoints.AddRange(locationPoints);

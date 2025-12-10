@@ -8,75 +8,380 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
     html, body, #map { height: 100vh; margin: 0; padding: 0; }
-    #deleteBtn {
+
+    #openSidebar {
         position: absolute;
         top: 12px;
-        right: 12px;
-        z-index: 1000;
-        background: rgba(255,255,255,0.95);
-        border: 1px solid #ccc;
+        right: 120px;
+        z-index: 1101;
+        background: linear-gradient(135deg,#7c5cff,#5ab3ff);
+        color: white;
+        border: none;
         padding: 8px 12px;
+        border-radius: 6px;
         cursor: pointer;
-        border-radius: 4px;
+        font-weight: 600;
         font-family: sans-serif;
+    }
+
+    .sidebar-backdrop{
+        position: fixed;
+        inset: 0;
+        /* increased opacity for a more visible backdrop */
+        background: rgba(2,6,23,0.75);
+        z-index: 1100;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .18s ease;
+    }
+    .sidebar-backdrop.open{
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .sidebar{
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100vh;
+        width: min(520px, 92vw);
+        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+        box-shadow: -30px 0 60px rgba(2,6,23,0.6);
+        transform: translateX(105%);
+        transition: transform .28s cubic-bezier(.2,.9,.25,1);
+        z-index: 1102;
+        display: flex;
+        flex-direction: column;
+        padding: 18px;
+        gap: 12px;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        color: #e6eef8;
+        border-left: 1px solid rgba(255,255,255,0.03);
+    }
+    .sidebar.open{ transform: translateX(0); }
+
+    .sidebar-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .title{ display:flex; align-items:center; gap:12px; }
+    .title .dot{ width:42px;height:42px;border-radius:10px; background: linear-gradient(135deg,#7c5cff,#5ab3ff); display:flex;align-items:center;justify-content:center;font-weight:700; }
+    .title h3{ margin:0; font-size:16px; }
+    .close-btn{ background:transparent;border:none;color:#9aa4b2;cursor:pointer;padding:8px;border-radius:8px; }
+
+    /* stacked sections (no "zones" grid) */
+    .section { background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.03)); border-radius:12px; padding:12px; border:1px solid rgba(255,255,255,0.03); }
+    .section h4{ margin:0 0 8px 0; font-size:13px; color:#dfe8f7; display:flex;justify-content:space-between; align-items:center; }
+    .section .count{ font-size:12px; color:#9aa4b2; }
+
+    .points-container{ display:flex; gap:8px; overflow:auto; padding-bottom:6px; }
+    .group{ min-width:150px; flex:1; display:flex; flex-direction:column; gap:8px; }
+    .point{ background: rgba(255,255,255,0.03); border-radius:8px; padding:8px; font-size:12px; color:#e6eef8; box-shadow:0 4px 14px rgba(4,6,12,0.35); border:1px solid rgba(255,255,255,0.02); }
+    .point .meta{ color:#9aa4b2; font-size:11px; margin-top:6px; }
+
+    .status-grid{ display:grid; grid-template-columns: repeat(2,1fr); gap:8px; margin-top:6px; }
+    .status-item{ padding:10px; border-radius:8px; background:linear-gradient(180deg, rgba(255,255,255,0.012), rgba(0,0,0,0.04)); display:flex; flex-direction:column; gap:6px; font-size:13px; }
+    .status-item .val{ font-weight:700; color:#fff; }
+    .status-true{ color:#22c55e; font-weight:700; }
+    .status-false{ color:#9aa4b2; font-weight:700; }
+
+    .actions{ display:flex; gap:8px; align-items:center; }
+    .btn{ padding:8px 12px; border-radius:9px; border:none; cursor:pointer; font-weight:600; }
+    .btn.danger{ background: linear-gradient(180deg,#ef4444,#c81b1b); color:white; }
+
+    /* datetime picker styled similar to sidebar */
+    .datetime-row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+    .datetime-row label{ font-size:12px; color:#9aa4b2; margin-right:6px; }
+    .datetime-input{ background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.04); color:#e6eef8; padding:8px; border-radius:8px; }
+    .datetime-input::-webkit-calendar-picker-indicator{ filter:invert(1) grayscale(1); }
+
+    @@media (max-width:560px){
+        .points-container{ flex-direction:column; }
+        .group{ min-width:unset; }
     }
 </style>
 
 <div id="map"></div>
-<button id="deleteBtn">Delete all points</button>
+
+<!-- Top-center datetime picker moved from the sidebar -->
+<div id="pickerContainer" style="position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:1103;display:flex;align-items:center;gap:8px;background:rgba(11,18,28,0.85);padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);">
+    <label for="fromPicker" style="font-size:12px;color:#9aa4b2;margin-right:6px;">From</label>
+    <!-- step="1" enables seconds in datetime-local input -->
+    <input id="fromPicker" class="datetime-input" type="datetime-local" step="1" />
+    <label for="toPicker" style="font-size:12px;color:#9aa4b2;margin-right:6px;">To</label>
+    <input id="toPicker" class="datetime-input" type="datetime-local" step="1" />
+</div>
+
+<button id="openSidebar">Details</button>
+
+<div id="backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
+<aside id="sidebar" class="sidebar" aria-hidden="true">
+    <div class="sidebar-header">
+        <div class="title">
+            <div class="dot">LP</div>
+            <div>
+                <h3>Location Points</h3>
+                <div style="font-size:12px;color:#9aa4b2">Live point summary</div>
+            </div>
+        </div>
+        <div class="actions">
+            <button id="deleteAll" class="btn danger">Delete all points</button>
+            <button id="closeSidebar" class="close-btn" title="Close">✕</button>
+        </div>
+    </div>
+
+    <!-- Points section: groups are purely presentational (not strict "zones") -->
+    <div class="section" id="pointsSection">
+        <h4>Points <span id="pointsCount" class="count"></span></h4>
+
+        <div class="points-container" id="pointsContainer">
+            <div class="group" id="group1"></div>
+            <div class="group" id="group2"></div>
+            <div class="group" id="group3"></div>
+        </div>
+    </div>
+
+    <!-- Status section -->
+    <div class="section" id="statusSection">
+        <h4>Status <span id="statusUpdated" class="count"></span></h4>
+        <div class="status-grid" id="statusGrid">
+            <div class="status-item">
+                <div class="label">Battery</div>
+                <div id="BatteryLevel" class="val">—</div>
+            </div>
+            <div class="status-item">
+                <div class="label">GPS Online</div>
+                <div id="IsGPSOnline" class="val status-false">—</div>
+            </div>
+            <div class="status-item">
+                <div class="label">In Alarm</div>
+                <div id="IsInAlarm" class="val status-false">—</div>
+            </div>
+            <div class="status-item">
+                <div class="label">Button Pressed</div>
+                <div id="IsButtonPressed" class="val status-false">—</div>
+            </div>
+            <div class="status-item" style="grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:13px;color:#9aa4b2">Last fetched</div>
+                <div id="lastFetched" style="font-size:12px;color:#9aa4b2">—</div>
+            </div>
+        </div>
+    </div>
+</aside>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+    // initial points provided by server
     const points = @Html.Raw(pointsJson);
-    const latlngs = points.map(p => [p.Latitude, p.Longitude]);
+    const safePoints = Array.isArray(points) ? points : [];
+    const latlngs = safePoints.map(p => [p.Latitude ?? p.latitude ?? p.Lat ?? 0, p.Longitude ?? p.Longitude ?? p.Longitude ?? p.Longitude ?? 0]);
 
     const map = L.map('map');
-    if (latlngs.length) {
-        map.setView(latlngs[0], 13);
-    } else {
-        map.setView([0,0], 2);
-    }
+    if (latlngs.length) map.setView(latlngs[0], 13); else map.setView([0,0], 2);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // keep references so we can remove them on delete
     const markers = [];
     let pathLayer = null;
-
     if (latlngs.length) {
         pathLayer = L.polyline(latlngs, { color: 'blue' }).addTo(map);
         latlngs.forEach(l => markers.push(L.marker(l).addTo(map)));
         map.fitBounds(latlngs);
     }
 
-    document.getElementById('deleteBtn').addEventListener('click', async () => {
-        if (!confirm('Delete all points? This cannot be undone.')) return;
+    // --- NEW: periodic refresh of points and datetime picker handling ---
+    const fromInput = document.getElementById('fromPicker');
+    const toInput = document.getElementById('toPicker');
 
+    function toDateTimeLocal(dt) {
+        const pad = n => String(n).padStart(2,'0');
+        const year = dt.getFullYear();
+        const month = pad(dt.getMonth()+1);
+        const day = pad(dt.getDate());
+        const hours = pad(dt.getHours());
+        const minutes = pad(dt.getMinutes());
+        const seconds = pad(dt.getSeconds());
+        // produce a datetime-local compatible string with seconds
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+    }
+
+    // Convert a `datetime-local` input value (local time) to a UTC ISO string.
+    function localToISOString(localValue) {
+        if (!localValue) return '';
+        // match YYYY-MM-DDTHH:mm or YYYY-MM-DDTHH:mm:ss
+        const m = localValue.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (!m) {
+            // fallback to Date parsing
+            try { return new Date(localValue).toISOString(); } catch(e) { return ''; }
+        }
+        const year = Number(m[1]);
+        const month = Number(m[2]) - 1;
+        const day = Number(m[3]);
+        const hour = Number(m[4]);
+        const minute = Number(m[5]);
+        const second = Number(m[6] || '0');
+        // construct a Date using local components (this creates a local-time Date)
+        const dt = new Date(year, month, day, hour, minute, second);
+        return dt.toISOString(); // convert to UTC ISO
+    }
+
+    function setDefaultRange(auto=true) {
+        const now = new Date();
+        const oneHourAgo = new Date(now.getTime() - 60*60*1000);
+        if (auto) {
+            fromInput.value = toDateTimeLocal(oneHourAgo);
+            toInput.value = toDateTimeLocal(now);
+            fromInput.dataset.auto = 'true';
+            toInput.dataset.auto = 'true';
+        }
+    }
+
+    // mark inputs as manual on user edit
+    [fromInput, toInput].forEach(inp => {
+        inp.addEventListener('input', () => {
+            inp.dataset.auto = 'false';
+        });
+    });
+
+    // update map markers / path with given points array
+    function updateMapWithPoints(pts) {
+        // clear markers
+        markers.forEach(m => map.removeLayer(m));
+        markers.length = 0;
+        if (pathLayer) { map.removeLayer(pathLayer); pathLayer = null; }
+
+        const latlngs = (Array.isArray(pts) ? pts : []).map(p => [p.Latitude ?? p.latitude ?? p.lat ?? 0, p.Longitude ?? p.longitude ?? p.lon ?? 0]);
+        if (latlngs.length) {
+            pathLayer = L.polyline(latlngs, { color: 'blue' }).addTo(map);
+            latlngs.forEach(l => markers.push(L.marker(l).addTo(map)));
+            try { map.fitBounds(latlngs); } catch(e) { /* ignore */ }
+        }
+    }
+
+    async function refreshPoints() {
         try {
-            const res = await fetch('/v1/public/location/points', {
-                method: 'DELETE',
-                headers: { 'Accept': 'application/json' }
-            });
-
-            if (res.ok || res.status === 204) {
-                // optionally remove markers locally then refresh the page
-                markers.forEach(m => map.removeLayer(m));
-                markers.length = 0;
-                if (pathLayer) {
-                    map.removeLayer(pathLayer);
-                    pathLayer = null;
-                }
-                // reload the page to reflect server-side changes
-                location.reload();
-            } else {
-                const text = await res.text();
-                alert('Failed to delete points: ' + (text || res.status));
+            // if inputs are auto, advance them to now / now-1h so default follows time
+            const autoFrom = fromInput.dataset.auto === 'true';
+            const autoTo = toInput.dataset.auto === 'true';
+            const now = new Date();
+            if (autoFrom && autoTo) {
+                const oneHourAgo = new Date(now.getTime() - 60*60*1000);
+                fromInput.value = toDateTimeLocal(oneHourAgo);
+                toInput.value = toDateTimeLocal(now);
+            } else if (autoTo && !autoFrom) {
+                // if user changed from but to is auto, keep from and advance to
+                toInput.value = toDateTimeLocal(now);
             }
-        } catch (err) {
-            alert('Request failed: ' + err);
+
+            // build query params from inputs
+            // display in picker is local time; convert to UTC ISO for the API
+            const fromIso = fromInput.value ? localToISOString(fromInput.value) : '';
+            const toIso = toInput.value ? localToISOString(toInput.value) : '';
+            let url = '/v1/public/location/points';
+            const params = [];
+            if (fromIso) params.push('from=' + encodeURIComponent(fromIso));
+            if (toIso) params.push('to=' + encodeURIComponent(toIso));
+            if (params.length) url += '?' + params.join('&');
+
+            const resp = await fetch(url, { cache: 'no-store' });
+            if (!resp.ok) return;
+            const pts = await resp.json();
+
+            // update map
+            updateMapWithPoints(pts);
+
+            // if sidebar is open, update groups and counts as well
+            if (sidebar.classList.contains('open')) {
+                // reuse existing grouping logic
+                const groups = [[],[],[]];
+                (Array.isArray(pts) ? pts : []).forEach((p, i) => groups[i % 3].push(p));
+                ['group1','group2','group3'].forEach((id, idx) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.innerHTML = '';
+                    groups[idx].forEach(pt => {
+                        const lat = pt.Latitude ?? pt.latitude ?? pt.lat ?? pt.latLng?.lat ?? '—';
+                        const lon = pt.Longitude ?? pt.longitude ?? pt.lon ?? pt.lng ?? pt.latLng?.lng ?? '—';
+                        const created = pt.CreatedAt ?? pt.createdAt ?? pt.created_at ?? pt.timestamp ?? pt.time ?? '—';
+                        const div = document.createElement('div');
+                        div.className = 'point';
+                        div.innerHTML = `<div><strong>Lat:</strong> ${lat}</div>
+                                         <div><strong>Lon:</strong> ${lon}</div>
+                                         <div class="meta">${new Date(created).toLocaleString()}</div>`;
+                        el.appendChild(div);
+                    });
+                });
+                document.getElementById('pointsCount').textContent = (Array.isArray(pts) ? pts.length : 0) ? (pts.length + ' total') : '';
+                // update last fetched display
+                const lf = document.getElementById('lastFetched'); if (lf) lf.textContent = new Date().toLocaleTimeString();
+            }
+
+        } catch (e) {
+            console.error('refreshPoints failed', e);
+        }
+    }
+
+    // --- removed immediate polling start here and will start after sidebar elements are available ---
+
+    // Sidebar controls
+    const openBtn = document.getElementById('openSidebar');
+    const closeBtn = document.getElementById('closeSidebar');
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('backdrop');
+    const deleteBtn = document.getElementById('deleteAll');
+
+    openBtn.addEventListener('click', () => {
+        sidebar.classList.add('open');
+        backdrop.classList.add('open');
+        sidebar.setAttribute('aria-hidden','false');
+        // hide the Details button while sidebar is open to avoid duplicate controls
+        openBtn.style.display = 'none';
+        loadSidebar();
+    });
+    closeBtn.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        backdrop.classList.remove('open');
+        sidebar.setAttribute('aria-hidden','true');
+        // restore the Details button when sidebar is closed
+        openBtn.style.display = '';
+    });
+    backdrop.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+        backdrop.classList.remove('open');
+        sidebar.setAttribute('aria-hidden','true');
+        // restore the Details button when clicking backdrop
+        openBtn.style.display = '';
+    });
+
+    function fmtDate(s) { try { const d = new Date(s); return isNaN(d.getTime()) ? (s ?? '—') : d.toLocaleString(); } catch(e) { return s ?? '—'; } }
+
+    // set default range and start polling now that sidebar & inputs exist
+    setDefaultRange(true);
+    // initial refresh immediately
+    refreshPoints();
+    // then poll every 2 seconds
+    const refreshInterval = setInterval(refreshPoints, 2000);
+
+    // delete button inside sidebar
+    deleteBtn.addEventListener('click', async () => {
+        if (!confirm('Delete all location points? This cannot be undone.')) return;
+        deleteBtn.disabled = true;
+        deleteBtn.textContent = 'Deleting...';
+        try {
+            const resp = await fetch('/v1/public/location/points', { method: 'DELETE' });
+            if (!resp.ok && resp.status !== 204) {
+                const txt = await resp.text();
+                alert('Delete failed: ' + (txt || resp.status));
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = 'Delete all points';
+                return;
+            }
+            location.reload();
+        } catch (e) {
+            alert('Delete error');
+            deleteBtn.disabled = false;
+            deleteBtn.textContent = 'Delete all points';
         }
     });
 </script>

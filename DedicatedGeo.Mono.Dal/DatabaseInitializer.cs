@@ -1,7 +1,6 @@
-﻿using DedicatedGeo.Mono.Common;
-using DedicatedGeo.Mono.Common.Extensions;
+﻿using System;
+using System.Threading.Tasks;
 using DedicatedGeo.Mono.Dal.Abstractions;
-using DedicatedGeo.Mono.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
