@@ -7,6 +7,8 @@ public class LocationPointConfiguration : IEntityTypeConfiguration<LocationPoint
 {
     public void Configure(EntityTypeBuilder<LocationPoint> builder)
     {
-        
+        builder.HasKey(e => e.LocationPointId);
+        builder.Property(e => e.Point).IsRequired();
+        builder.HasIndex(e => e.CreatedAt);
     }
 }

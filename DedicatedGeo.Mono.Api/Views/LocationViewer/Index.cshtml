@@ -1,0 +1,32 @@
+﻿@model DedicatedGeo.Mono.Dtos.Web.LocationPathViewDto
+
+@{
+    ViewBag.Title = Model.Title;
+}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<div id="map" style="height:500px;"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const points = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Points));
+    const latlngs = points.map(p => [p.Latitude, p.Longitude]);
+
+    const map = L.map('map');
+    if (latlngs.length) {
+        map.setView(latlngs[0], 13);
+    } else {
+        map.setView([0,0], 2);
+    }
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    if (latlngs.length) {
+        L.polyline(latlngs, { color: 'blue' }).addTo(map);
+        latlngs.forEach(l => L.marker(l).addTo(map));
+        map.fitBounds(latlngs);
+    }
+</script>

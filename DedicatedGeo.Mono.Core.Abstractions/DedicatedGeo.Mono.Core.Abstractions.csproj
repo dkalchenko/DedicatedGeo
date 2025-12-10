@@ -2,10 +2,6 @@
     <Import Project="../build.targets"/>
 
     <ItemGroup>
-        <ProjectReference Include="..\DedicatedGeo.Mono.Entities\DedicatedGeo.Mono.Entities.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
         <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.15.0" />
     </ItemGroup>
 
