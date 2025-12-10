@@ -14,7 +14,6 @@ COPY ["DedicatedGeo.Mono.Core.Abstractions/DedicatedGeo.Mono.Core.Abstractions.c
 COPY ["DedicatedGeo.Mono.Common/DedicatedGeo.Mono.Common.csproj", "DedicatedGeo.Mono.Common/"]
 COPY ["DedicatedGeo.Mono.Dal/DedicatedGeo.Mono.Dal.csproj", "DedicatedGeo.Mono.Dal/"]
 COPY ["DedicatedGeo.Mono.Dal.Abstractions/DedicatedGeo.Mono.Dal.Abstractions.csproj", "DedicatedGeo.Mono.Dal.Abstractions/"]
-COPY ["DedicatedGeo.Mono.Entities/DedicatedGeo.Mono.Entities.csproj", "DedicatedGeo.Mono.Entities/"]
 COPY ["DedicatedGeo.Mono.Models/DedicatedGeo.Mono.Models.csproj", "DedicatedGeo.Mono.Models/"]
 RUN dotnet restore "DedicatedGeo.Mono.Api/DedicatedGeo.Mono.Api.csproj"
 COPY . .
