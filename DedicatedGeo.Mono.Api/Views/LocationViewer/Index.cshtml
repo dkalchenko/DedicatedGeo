@@ -34,7 +34,9 @@
         transition: opacity .18s ease, background-color .18s ease;
     }
     .sidebar-backdrop.open{
-        opacity: 0;
+        /* Darken the map a bit when the sidebar is open so the sidebar is more prominent */
+        background-color: rgba(0,0,0,0.45);
+        opacity: 1;
         pointer-events: auto;
     }
 
@@ -142,7 +144,7 @@
     <input id="toPicker" class="datetime-input" type="datetime-local" step="1" />
 </div>
 
-<button id="openSidebar">Open Sidebar</button>
+<button id="openSidebar">Details</button>
 
 <div id="backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
 
@@ -202,7 +204,12 @@
 <script>
     // Map initialization
     const map = L.map('map').setView([0,0],2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+    // Use CartoDB Positron (light) tiles for a clean, minimal basemap
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    }).addTo(map);
 
     // state
     let mapMarkers = [];
@@ -326,13 +333,17 @@
             const latlngs = [];
             if (pointsContainer) pointsContainer.innerHTML = '';
 
+            // Create markers in the order returned by the API and keep a mapping
+            const markerMapping = []; // { p, idx, lat, lon, createdDate }
             let markerIndex = 0;
             pts.forEach((p) => {
                 const lat = toNum(p.Latitude ?? p.latitude ?? p.lat ?? p.latDeg ?? p.lat_deg);
                 const lon = toNum(p.Longitude ?? p.longitude ?? p.lon ?? p.lonDeg ?? p.lon_deg);
                 if (lat == null || lon == null) return;
+
                 const myIdx = markerIndex++;
                 latlngs.push([lat, lon]);
+
                 const m = L.circleMarker([lat, lon], { radius: 5, color: '#1e88e5', fillColor: '#1e88e5', fillOpacity: 0.95 }).addTo(map);
                 const createdRaw = p.CreatedAt ?? p.createdAt ?? p.timestamp ?? p.time ?? null;
                 const createdDate = parseTimestamp(createdRaw);
@@ -342,15 +353,29 @@
 
                 m.on('click', () => { selectMarker(myIdx, true); });
 
-                if (pointsContainer) {
-                    const item = document.createElement('div');
-                    item.className = 'point';
-                    item.dataset.index = String(myIdx);
-                    item.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700">${lat.toFixed(6)}, ${lon.toFixed(6)}</div><div style="font-size:11px;color:#9aa4b2">${createdText || '—'}</div></div>`;
-                    item.addEventListener('click', () => { selectMarker(myIdx, true); });
-                    pointsContainer.appendChild(item);
-                }
+                markerMapping.push({ p, idx: myIdx, lat, lon, createdDate, createdText });
             });
+
+            // Sort mapping for sidebar list by CreatedAt DESC (newest first)
+            const mappingForList = markerMapping.slice().sort((a, b) => {
+                const ta = a.createdDate ? a.createdDate.getTime() : 0;
+                const tb = b.createdDate ? b.createdDate.getTime() : 0;
+                return tb - ta;
+            });
+
+            // Render sorted list in sidebar referencing correct marker indices
+            if (pointsContainer) {
+                pointsContainer.innerHTML = '';
+                mappingForList.forEach(item => {
+                    const { idx, lat, lon, createdText } = item;
+                    const entry = document.createElement('div');
+                    entry.className = 'point';
+                    entry.dataset.index = String(idx);
+                    entry.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700">${lat.toFixed(6)}, ${lon.toFixed(6)}</div><div style="font-size:11px;color:#9aa4b2">${createdText || '—'}</div></div>`;
+                    entry.addEventListener('click', () => { selectMarker(idx, true); });
+                    pointsContainer.appendChild(entry);
+                });
+            }
 
             const pointsCountEl = document.getElementById('pointsCount');
             if (pointsCountEl) pointsCountEl.innerText = String(mapMarkers.length);
