@@ -1,9 +1,7 @@
-﻿namespace DedicatedGeo.Mono.Models.Device;
+﻿namespace DedicatedGeo.Mono.Dtos.Device;
 
-public class DeviceStatus
+public class GetDeviceStatusAdminResponse
 {
-    public Guid DeviceId { get; set; }
-    public Guid DeviceStatusId { get; set; }
     public int BatteryLevel { get; set; }
     public bool IsInAlarm { get; set; }
     public bool IsButtonPressed { get; set; }

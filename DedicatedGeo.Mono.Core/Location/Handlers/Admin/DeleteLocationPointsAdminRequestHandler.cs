@@ -1,0 +1,52 @@
+﻿using DedicatedGeo.Mono.Common;
+using DedicatedGeo.Mono.Common.Extensions;
+using DedicatedGeo.Mono.Dal.Abstractions;
+using DedicatedGeo.Mono.Dtos.Location;
+using DedicatedGeo.Mono.Entities.Device;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+
+namespace DedicatedGeo.Mono.Core.Location;
+
+public class DeleteLocationPointsAdminRequestHandler: IRequestHandler<DeleteLocationPointsAdminRequest>
+{
+    private readonly IDatabaseRepository _repository;
+    private readonly ISender _sender;
+
+    public DeleteLocationPointsAdminRequestHandler(IDatabaseRepository repository, ISender sender)
+    {
+        _repository = repository.ThrowIfNull();
+        _sender = sender.ThrowIfNull();
+    }
+    
+    public async Task Handle(DeleteLocationPointsAdminRequest request, CancellationToken cancellationToken)
+    {
+        var device = await _sender.Send(new GetDeviceInternalRequest
+        {
+            DeviceId = request.DeviceId
+        }, cancellationToken);
+
+        if (device is null)
+        {
+            throw OwnConstants.ErrorTemplates.ResourceNotFound.FormatMessage("device").GetException();
+        }
+        
+        var locationPointIds = request.LocationPointIds?.Split(',').Select(Guid.Parse).ToList();
+        
+        var query = _repository.LocationPoints.Where(x => x.DeviceId == request.DeviceId.ToGuid());
+
+        if (locationPointIds is not null)
+        {
+            query = query.Where(x => locationPointIds.Contains(x.LocationPointId));
+        }
+        
+        var points = await query.ToListAsync(cancellationToken);
+        
+        if (points.Count > 0)
+        {
+            _repository.LocationPoints.RemoveRange(points);
+            await _repository.SaveChangesAsync(cancellationToken);
+        }
+
+    }
+}

@@ -1,0 +1,873 @@
+﻿@model DedicatedGeo.Mono.Dtos.Web.LocationPathViewDto
+
+@{
+    ViewBag.Title = Model.Title;
+}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    html, body, #map { height: 100vh; margin: 0; padding: 0; }
+
+    /* make the Details button match the datetime picker / sidebar look */
+    #openSidebar {
+        position: absolute;
+        top: 12px;
+        right: 20px;
+        z-index: 1104;
+        background: rgba(11,18,28,0.85);
+        color: #e6eef8;
+        border: 1px solid rgba(255,255,255,0.04);
+        padding: 8px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+
+    .sidebar-backdrop{
+        position: fixed;
+        inset: 0;
+        background: transparent;
+        z-index: 1100;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .18s ease, background-color .18s ease;
+    }
+    .sidebar-backdrop.open{
+        opacity: 0;
+        pointer-events: auto;
+    }
+
+    .sidebar{
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100vh;
+        width: min(520px, 92vw);
+        /* align sidebar look with the picker: slightly translucent dark surface */
+        background: rgba(11,18,28,0.8);
+        box-sizing: border-box;
+        overflow: hidden;
+        box-shadow: -30px 0 60px rgba(2,6,23,0.6);
+        transform: translateX(105%);
+        transition: transform .28s cubic-bezier(.2,.9,.25,1);
+        z-index: 1202;
+        display: flex;
+        flex-direction: column;
+        padding: 18px;
+        gap: 12px;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        color: #e6eef8;
+        border-left: 1px solid rgba(255,255,255,0.03);
+    }
+    .sidebar.open{ transform: translateX(0); }
+
+    .sidebar-header, .section { flex: 0 0 auto; }
+    
+    #pointsSection{
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .points-container{
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+        overflow-y:auto;
+        overflow-x:hidden;
+        flex: 1 1 auto;
+        min-height: 0;
+        padding-bottom:6px;
+        width:100%;
+    }
+
+    #statusSection{
+        flex: 0 0 auto;
+    }
+
+    .sidebar-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    /* hide the empty actions area so the selector can expand full width */
+    .sidebar-header .actions { display: none; }
+    .title{ display:flex; align-items:center; gap:12px; flex:1; min-width:0; }
+    /* make title occupy full header width */
+    .title{ width:100%; padding:0; }
+    /* ensure the immediate child of .title stretches so the selector can be full width */
+    .title > div { width:100%; min-width:0; display:flex; }
+    .title .dot{ width:42px;height:42px;border-radius:10px; background: linear-gradient(135deg,#7c5cff,#5ab3ff); display:flex;align-items:center;justify-content:center;font-weight:700; }
+    .title h3{ margin:0; font-size:16px; }
+    /* ensure the generated selector element stretches fully */
+    #deviceSelector{ width:100%; box-sizing:border-box; }
+    .cds-toggle{ box-sizing: border-box; }
+    /* force full-width in stubborn layouts */
+    #deviceSelectorWrapper, #deviceSelector, .cds-toggle { width:100% !important; }
+    #deviceSelectorWrapper, #deviceSelector { display:block !important; }
+    /* Device selector styling to match sidebar visual language */
+    #deviceSelectorWrapper{ display:flex; align-items:center; gap:8px; width:100%; flex:1; min-width:0; padding:0; margin:0; }
+    /* Custom device dropdown (looks like sidebar panels) */
+    .custom-device-select{ position: relative; width:100%; box-sizing: border-box; }
+    .cds-toggle{
+        display:flex; align-items:center; justify-content:space-between; gap:12px; width:100% !important;
+        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03));
+        border: 1px solid rgba(255,255,255,0.04);
+        padding: 8px 12px; border-radius: 10px; color: #e6eef8; cursor: pointer; font-size:13px;
+    }
+    /* ensure toggle content doesn't constrain width */
+    .cds-toggle .label{ width:100%; }
+    .cds-dot{ width:36px; height:36px; border-radius:8px; flex:0 0 36px; background: linear-gradient(135deg,#7c5cff,#5ab3ff); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; }
+    /* hide the decorative dot to allow the selector label to use full width */
+    .cds-dot{ display:none; }
+    /* label should flex to occupy remaining space */
+    .cds-toggle .label{ flex:1; min-width:0; }
+    /* caret should not grow */
+    .cds-right{ flex:0 0 auto; }
+    .cds-toggle .label{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#e6eef8; font-weight:600; }
+    .cds-toggle .sub{ font-size:12px; color:#9aa4b2; }
+    .cds-right{ margin-left:auto; display:flex; align-items:center; gap:8px; }
+    .cds-caret{ width:18px; height:18px; display:flex; align-items:center; justify-content:center; transform:rotate(0deg); transition:transform .18s ease; opacity:0.95 }
+    .cds-open .cds-caret{ transform: rotate(180deg); }
+    .cds-caret svg{ width:12px; height:12px; fill: #9aa4b2; }
+
+    .cds-list{
+        position:absolute; right:0; left:0; top:calc(100% + 8px);
+        background: linear-gradient(180deg, rgba(11,18,28,0.98), rgba(6,10,16,0.95));
+        border:1px solid rgba(255,255,255,0.04); border-radius:12px; padding:8px; z-index:1300;
+        max-height:320px; overflow:auto; box-shadow: 0 16px 48px rgba(2,6,23,0.7);
+    }
+    .cds-search{ display:block; width:100%; padding:8px 10px; margin-bottom:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.02); color:#e6eef8; }
+    .cds-empty{ padding:8px; color:#9aa4b2; text-align:center; }
+    .cds-item{ padding:10px; border-radius:8px; color:#e6eef8; display:flex; align-items:center; gap:12px; cursor:pointer; }
+    .cds-item:hover{ background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02)); }
+    .cds-item.selected{ background: linear-gradient(180deg, rgba(90,179,255,0.08), rgba(90,179,255,0.02)); border:1px solid rgba(90,179,255,0.12); }
+    .cds-item .name{ font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cds-item .id{ color:#9aa4b2; font-size:12px; margin-left:auto; }
+    #noDevicesText{ color: #9aa4b2; font-size:13px; padding:4px 0; }
+    /* custom scrollbar for the dropdown */
+    .cds-list::-webkit-scrollbar{ width:10px; }
+    .cds-list::-webkit-scrollbar-thumb{ background: rgba(255,255,255,0.04); border-radius:6px; }
+
+    .section { background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.03)); border-radius:12px; padding:12px; border:1px solid rgba(255,255,255,0.03); }
+    .section h4{ margin:0 0 8px 0; font-size:13px; color:#dfe8f7; display:flex;justify-content:space-between; align-items:center; }
+    .section .count{ font-size:12px; color:#9aa4b2; }
+
+    .group{
+        width:100%;
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+    }
+    .point{ background: rgba(255,255,255,0.03); border-radius:8px; padding:8px; font-size:12px; color:#e6eef8; box-shadow:0 4px 14px rgba(4,6,12,0.35); border:1px solid rgba(255,255,255,0.02); }
+    .point .meta{ color:#9aa4b2; font-size:11px; margin-top:6px; }
+
+    .point:hover { cursor: pointer; transform: translateX(2px); }
+    .point.selected{ border: 1px solid rgba(90,179,255,0.9); background: linear-gradient(180deg, rgba(90,179,255,0.06), rgba(90,179,255,0.02)); }
+
+    .status-grid{ display:grid; grid-template-columns: repeat(2,1fr); gap:8px; margin-top:6px; }
+    .status-item{ padding:10px; border-radius:8px; background:linear-gradient(180deg, rgba(255,255,255,0.012), rgba(0,0,0,0.04)); display:flex; flex-direction:column; gap:6px; font-size:13px; }
+    .status-item .val{ font-weight:700; color:#fff; }
+    .status-true{ color:#22c55e; font-weight:700; }
+    .status-false{ color:#9aa4b2; font-weight:700; }
+
+    .actions{ display:flex; gap:8px; align-items:center; }
+    .btn{ padding:8px 12px; border-radius:9px; border:none; cursor:pointer; font-weight:600; }
+    .btn.danger{ background: linear-gradient(180deg,#ef4444,#c81b1b); color:white; }
+
+    .datetime-row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+    .datetime-row label{ font-size:12px; color:#9aa4b2; margin-right:6px; }
+    .datetime-input{ background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.04); color:#e6eef8; padding:8px; border-radius:8px; }
+    .datetime-input::-webkit-calendar-picker-indicator{ filter:invert(1) grayscale(1); }
+
+    @@media (max-width:560px){
+        .points-container{ flex-direction:column; }
+        .group{ min-width:unset; }
+    }
+</style>
+
+<div id="map"></div>
+
+<!-- Top-center datetime picker moved from the sidebar -->
+<div id="pickerContainer" style="position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:1103;display:flex;align-items:center;gap:8px;background:rgba(11,18,28,0.85);padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);">
+    <label for="fromPicker" style="font-size:12px;color:#9aa4b2;margin-right:6px;">From</label>
+    <!-- step="1" enables seconds in datetime-local input -->
+    <input id="fromPicker" class="datetime-input" type="datetime-local" step="1" />
+    <label for="toPicker" style="font-size:12px;color:#9aa4b2;margin-right:6px;">To</label>
+    <input id="toPicker" class="datetime-input" type="datetime-local" step="1" />
+</div>
+
+<button id="openSidebar">Details</button>
+
+<div id="backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
+<aside id="sidebar" class="sidebar" aria-hidden="true">
+    <div class="sidebar-header">
+        <div class="title"><h3 style="margin:0;font-size:14px;color:#dfe8f7">Devices</h3></div>
+    </div>
+
+    <!-- Full-width device selector placed below header to guarantee it spans the sidebar -->
+    <div style="width:100%;">
+        <div id="deviceSelectorWrapper" style="font-size:12px;color:#9aa4b2; width:100%;">
+            <span id="deviceLoadingText">Loading...</span>
+            <!-- select is inserted/managed by JS -->
+        </div>
+    </div>
+
+    <!-- Delete button moved into Points section -->
+    <div class="section" id="pointsSection">
+        <h4 style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                <span style="font-weight:700;">Points</span>
+                <span id="pointsCount" class="count"></span>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button id="deleteAll" class="btn danger" disabled>Delete all points</button>
+            </div>
+        </h4>
+
+        <div class="points-container" id="pointsContainer">
+        </div>
+    </div>
+
+    <!-- Status section -->
+    <div class="section" id="statusSection">
+        <h4>Status <span id="statusUpdated" class="count"></span></h4>
+        <div class="status-grid" id="statusGrid">
+            <div class="status-item">
+                <div class="label">Battery Level</div>
+                <div id="BatteryLevel" class="val">—</div>
+            </div>
+            <div class="status-item">
+                <div class="label">GPS Online</div>
+                <div id="IsGPSOnline" class="val status-false">—</div>
+            </div>
+            <div class="status-item">
+                <div class="label">In Alarm</div>
+                <div id="IsInAlarm" class="val status-false">—</div>
+            </div>
+            <div class="status-item">
+                <div class="label">Button Pressed</div>
+                <div id="IsButtonPressed" class="val status-false">—</div>
+            </div>
+            <div class="status-item" style="grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:13px;color:#9aa4b2">Updated At</div>
+                <div id="lastFetched" style="font-size:12px;color:#9aa4b2">—</div>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<!-- scripts removed as requested -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Device selector: async load all devices (paginated) from /v1/admin/devices
+    async function fetchAllDevices() {
+        const results = [];
+        try {
+            // This backend uses Offset & Limit. We'll page by offset increasing by the number of items returned.
+            let offset = 0;
+            const limit = 200;
+            while (true) {
+                const url = `/v1/admin/devices?offset=${offset}&limit=${limit}`;
+                const resp = await fetch(url, { cache: 'no-store' });
+                if (!resp.ok) {
+                    // fallback to a single unpaged call on first attempt
+                    if (offset === 0) {
+                        const resp2 = await fetch('/v1/admin/devices', { cache: 'no-store' });
+                        if (!resp2.ok) break;
+                        const data2 = await resp2.json();
+                        if (Array.isArray(data2)) return data2;
+                        if (Array.isArray(data2?.Devices) || Array.isArray(data2?.devices)) return data2.Devices ?? data2.devices;
+                        return [];
+                    }
+                    break;
+                }
+
+                const data = await resp.json();
+                if (!data) break;
+
+                // server returns { Devices: [...] }
+                let items = [];
+                if (Array.isArray(data.Devices)) items = data.Devices;
+                else if (Array.isArray(data.devices)) items = data.devices;
+                else if (Array.isArray(data)) items = data;
+
+                if (!items || items.length === 0) break;
+
+                results.push(...items);
+
+                if (items.length < limit) break; // last page
+                offset += items.length;
+                if (offset > 100000) break; // safety
+            }
+        } catch (e) {
+            console.warn('fetchAllDevices error', e);
+        }
+        return results;
+    }
+
+    function renderDeviceSelector(devices) {
+        const wrapper = document.getElementById('deviceSelectorWrapper');
+        const loadingText = document.getElementById('deviceLoadingText');
+        if (!wrapper) return;
+        loadingText && (loadingText.style.display = 'none');
+        const existing = document.getElementById('deviceSelector');
+        if (existing) existing.remove();
+
+        if (!devices || devices.length === 0) {
+            const noEl = document.createElement('div');
+            noEl.id = 'noDevicesText';
+            noEl.innerText = 'No devices';
+            noEl.style.color = '#9aa4b2';
+            wrapper.appendChild(noEl);
+            return;
+        }
+
+        const root = document.createElement('div');
+        root.id = 'deviceSelector';
+        root.className = 'custom-device-select';
+        root.innerHTML = `
+            <div class="cds-toggle" tabindex="0" role="button" aria-haspopup="listbox">
+                <div style="display:flex;flex-direction:column;min-width:0;">
+                    <div class="label">Select device...</div>
+                    <!-- subtitle removed: Live point summary -->
+                </div>
+                <div class="cds-right"><div class="cds-caret"></div></div>
+            </div>
+            <div class="cds-list" style="display:none;">
+                <input class="cds-search" placeholder="Search devices..." />
+                <div class="cds-items"></div>
+            </div>
+        `;
+        wrapper.appendChild(root);
+
+        const toggle = root.querySelector('.cds-toggle');
+        const caret = root.querySelector('.cds-caret');
+        if (caret) caret.innerHTML = '<svg viewBox="0 0 14 8" xmlns="http://www.w3.org/2000/svg"><path d="M7 8L0 0h14z"/></svg>';
+        const list = root.querySelector('.cds-list');
+        const itemsRoot = root.querySelector('.cds-items');
+        const search = root.querySelector('.cds-search');
+
+        // build item elements and keep for filtering/keyboard navigation
+        const itemNodes = [];
+        devices.forEach(d => {
+            const id = d.DeviceId ?? d.deviceId ?? d.Id ?? d.id ?? null;
+            const name = d.DeviceName ?? d.deviceName ?? d.Name ?? d.name ?? d.DisplayName ?? d.displayName ?? String(id ?? '');
+            const it = document.createElement('div');
+            it.className = 'cds-item';
+            it.tabIndex = -1;
+            it.dataset.value = id ?? '';
+            // show only the device name (no ID column)
+            it.innerHTML = `<div class="name">${escapeHtml(name)}</div>`;
+            itemsRoot.appendChild(it);
+            itemNodes.push({ el: it, name: String(name).toLowerCase(), id: String(id) });
+        });
+
+        function openList() {
+            root.classList.add('cds-open');
+            list.style.display = 'block';
+            if (search) { search.focus(); search.select(); }
+        }
+        function closeList() {
+            root.classList.remove('cds-open');
+            list.style.display = 'none';
+        }
+
+        // filtering
+        if (search) {
+            search.addEventListener('input', () => {
+                const q = search.value.trim().toLowerCase();
+                let any = false;
+                itemNodes.forEach(it => {
+                    const match = !q || it.name.includes(q) || it.id.includes(q);
+                    it.el.style.display = match ? '' : 'none';
+                    if (match) any = true;
+                });
+                const empty = itemsRoot.querySelector('.cds-empty');
+                if (!any) {
+                    if (!empty) {
+                        const e = document.createElement('div'); e.className = 'cds-empty'; e.innerText = 'No devices'; itemsRoot.appendChild(e);
+                    }
+                } else {
+                    if (empty) empty.remove();
+                }
+            });
+        }
+
+        // keyboard navigation support
+        let focusedIndex = -1;
+        function focusItem(idx) {
+            if (focusedIndex >= 0 && itemNodes[focusedIndex]) itemNodes[focusedIndex].el.classList.remove('focused');
+            focusedIndex = idx;
+            if (focusedIndex >= 0 && itemNodes[focusedIndex]) {
+                const el = itemNodes[focusedIndex].el;
+                el.classList.add('focused');
+                el.scrollIntoView({ block: 'nearest' });
+                el.focus();
+            }
+        }
+
+        root.addEventListener('keydown', (ev) => {
+            if (ev.key === 'ArrowDown') { ev.preventDefault(); openList(); focusItem(Math.min(focusedIndex + 1, itemNodes.length - 1)); }
+            else if (ev.key === 'ArrowUp') { ev.preventDefault(); openList(); focusItem(Math.max(focusedIndex - 1, 0)); }
+            else if (ev.key === 'Enter') { ev.preventDefault(); if (focusedIndex >= 0 && itemNodes[focusedIndex]) itemClickHandler(itemNodes[focusedIndex].el); }
+            else if (ev.key === 'Escape') { closeList(); }
+        });
+
+        function itemClickHandler(el) {
+            const id = el.dataset.value;
+            const name = el.querySelector('.name')?.innerText ?? id;
+            // mark selected
+            itemsRoot.querySelectorAll('.cds-item.selected').forEach(s => s.classList.remove('selected'));
+            el.classList.add('selected');
+            // update toggle label
+            const lbl = toggle.querySelector('.label'); if (lbl) lbl.innerText = name;
+            // remember selected device id and trigger loads
+            selectedDeviceId = id || null;
+            // close the list
+            closeList();
+            console.log('Selected device', selectedDeviceId);
+            // enable delete button now that a device is selected
+            try { const db = document.getElementById('deleteAll'); if (db) db.disabled = false; } catch(e) {}
+            // when a device is selected, reset initial-fit so the map will refocus on the newly-loaded points,
+            // then load points and status immediately
+            try { didInitialFit = false; } catch (e) {}
+            try { loadPoints(); } catch (e) { console.warn('loadPoints on select failed', e); }
+            try { fetchDeviceStatus(); } catch (e) { console.warn('fetchDeviceStatus on select failed', e); }
+        }
+
+        itemNodes.forEach(obj => {
+            obj.el.addEventListener('click', () => itemClickHandler(obj.el));
+        });
+
+        toggle.addEventListener('click', () => {
+            const isOpen = root.classList.toggle('cds-open');
+            list.style.display = isOpen ? 'block' : 'none';
+            if (isOpen) { if (search) { search.value = ''; search.focus(); search.dispatchEvent(new Event('input')); } }
+        });
+
+        document.addEventListener('click', (e) => { if (!root.contains(e.target)) closeList(); });
+
+        // small helper to escape text
+        function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
+    }
+
+    // initialize device selector async
+    (async function initDeviceSelector() {
+        try {
+            const devices = await fetchAllDevices();
+            renderDeviceSelector(devices);
+        } catch (e) {
+            console.warn('initDeviceSelector error', e);
+            const wrapper = document.getElementById('deviceSelectorWrapper'); if (wrapper) {
+                const noEl = document.createElement('div'); noEl.innerText = 'No devices'; noEl.style.color = '#9aa4b2'; wrapper.innerHTML = ''; wrapper.appendChild(noEl);
+            }
+        }
+    })();
+
+    // Map initialization
+    const map = L.map('map').setView([0,0],2);
+    // Use CartoDB Positron (light) tiles for a clean, minimal basemap
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    }).addTo(map);
+
+    // state
+    let mapMarkers = [];
+    let mapPath = null;
+    let didInitialFit = false;
+    let selectedMarkerIndex = null;
+    // currently selected device id from the device selector (null = none)
+    let selectedDeviceId = null;
+
+    // helpers
+    const toNum = v => { if (v === undefined || v === null) return null; const n = Number(String(v).replace(',', '.')); return Number.isFinite(n) ? n : null; };
+
+    // parse timestamp values robustly (supports unix seconds, unix milliseconds, ISO strings and Date objects)
+    function parseTimestamp(v) {
+        if (v == null) return null;
+        if (v instanceof Date) return v;
+        if (typeof v === 'number') {
+            // heuristic: values > 1e12 are milliseconds, otherwise seconds
+            return new Date(v > 1e12 ? v : v * 1000);
+        }
+        if (typeof v === 'string') {
+            // numeric string?
+            if (/^\d+$/.test(v)) {
+                const n = Number(v);
+                return new Date(n > 1e12 ? n : n * 1000);
+            }
+            // If the server returned an ISO-like string without a timezone (e.g. "2023-10-05T12:00:00"),
+            // some browsers may interpret that as local time while others treat it as UTC. To ensure
+            // consistent behavior (treat timezone-less ISO as UTC and then display in the user's local timezone),
+            // detect such strings and append a 'Z' before parsing.
+            const isoNoTZ = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?$/.test(v);
+            const parseInput = isoNoTZ ? (v + 'Z') : v;
+            const d = new Date(parseInput);
+            if (!isNaN(d)) return d;
+        }
+        return null;
+    }
+
+    // produce a datetime-local string like YYYY-MM-DDTHH:mm:ss
+    function toDateTimeLocal(dt) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
+    }
+
+    // Format a Date into a consistent, human-readable local-time string including seconds
+    function formatLocal(dt) {
+        if (!dt) return '—';
+        try {
+            const pad = n => String(n).padStart(2, '0');
+            const mm = pad(dt.getMonth() + 1);
+            const dd = pad(dt.getDate());
+            const yyyy = dt.getFullYear();
+            let hours = dt.getHours();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            if (hours === 0) hours = 12;
+            const hh = pad(hours);
+            const min = pad(dt.getMinutes());
+            const sec = pad(dt.getSeconds());
+            return `${mm}/${dd}/${yyyy} ${hh}:${min}:${sec} ${ampm}`;
+        } catch (e) {
+            // fallback to locale string if something unexpected occurs
+            return dt.toLocaleString();
+        }
+    }
+
+    // convert datetime-local (local time) or any ISO input to UTC ISO (no milliseconds, ends with Z)
+    function localToISOString(localValue) {
+        if (!localValue) return '';
+        const m = localValue.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+        let iso;
+        if (m) {
+            const y = Number(m[1]), mo = Number(m[2]) - 1, d = Number(m[3]);
+            const hh = Number(m[4]), mm = Number(m[5]), ss = Number(m[6] || '0');
+            const localDt = new Date(y, mo, d, hh, mm, ss);
+            iso = localDt.toISOString();
+        } else {
+            iso = new Date(localValue).toISOString();
+        }
+        return iso.replace(/\.\d{3}Z$/, 'Z');
+    }
+
+    function setDefaultRange() {
+        const now = new Date();
+        const oneHourAgo = new Date(now.getTime() - 60*60*1000);
+        const fromEl = document.getElementById('fromPicker');
+        const toEl = document.getElementById('toPicker');
+        if (fromEl && toEl) {
+            if (!fromEl.dataset.userEdited) fromEl.value = toDateTimeLocal(oneHourAgo);
+            if (!toEl.dataset.userEdited) toEl.value = toDateTimeLocal(now);
+            if (!fromEl.dataset.userEdited) fromEl.dataset.auto = 'true';
+            if (!toEl.dataset.userEdited) toEl.dataset.auto = 'true';
+        }
+    }
+
+    function buildUrl() {
+        // No device selected -> no request
+        if (!selectedDeviceId) return null;
+
+        let url = `/v1/admin/devices/${encodeURIComponent(selectedDeviceId)}/location/points`;
+        const params = [];
+        const fromEl = document.getElementById('fromPicker');
+        const toEl = document.getElementById('toPicker');
+        if (fromEl && fromEl.value) {
+            const iso = localToISOString(fromEl.value);
+            if (iso) params.push('from=' + encodeURIComponent(iso));
+        }
+        if (toEl && toEl.value) {
+            const iso = localToISOString(toEl.value);
+            if (iso) params.push('to=' + encodeURIComponent(iso));
+        }
+        if (params.length) url += '?' + params.join('&');
+        return url;
+    }
+
+    function clearMap() {
+        mapMarkers.forEach(m => { try { map.removeLayer(m); } catch(e) {} });
+        mapMarkers = [];
+        if (mapPath) { try { map.removeLayer(mapPath); } catch(e) {} mapPath = null; }
+        selectedMarkerIndex = null;
+    }
+
+    async function loadPoints() {
+        try {
+            // Ensure a device is selected before requesting points
+            if (!selectedDeviceId) {
+                // clear map/UI state when no device is selected
+                clearMap();
+                const pointsContainer = document.getElementById('pointsContainer'); if (pointsContainer) pointsContainer.innerHTML = '';
+                const pointsCountEl = document.getElementById('pointsCount'); if (pointsCountEl) pointsCountEl.innerText = '0';
+                // disable delete button when no device selected
+                try { const db = document.getElementById('deleteAll'); if (db) db.disabled = true; } catch(e) {}
+                return;
+            }
+             const fromEl = document.getElementById('fromPicker');
+             const toEl = document.getElementById('toPicker');
+             const now = new Date();
+             if (fromEl && toEl && fromEl.dataset.auto === 'true' && toEl.dataset.auto === 'true') {
+                 const oneHourAgo = new Date(now.getTime() - 60*60*1000);
+                 fromEl.value = toDateTimeLocal(oneHourAgo);
+                 toEl.value = toDateTimeLocal(now);
+             } else if (toEl && toEl.dataset.auto === 'true') {
+                 toEl.value = toDateTimeLocal(now);
+             }
+
+            const url = buildUrl();
+            if (!url) return; // safety
+            const resp = await fetch(url, { cache: 'no-store' });
+             if (!resp.ok) return;
+             const data = await resp.json();
+             const pts = Array.isArray(data) ? data : (Array.isArray(data?.points) ? data.points : []);
+
+             const pointsContainer = document.getElementById('pointsContainer');
+
+             if (!pts.length) {
+                 clearMap();
+                 if (pointsContainer) pointsContainer.innerHTML = '';
+                 const pointsCountEl = document.getElementById('pointsCount');
+                 if (pointsCountEl) pointsCountEl.innerText = '0';
+                 return;
+             }
+
+             clearMap();
+
+             const latlngs = [];
+             if (pointsContainer) pointsContainer.innerHTML = '';
+
+            // Create markers in the order returned by the API and keep a mapping
+            const markerMapping = []; // { p, idx, lat, lon, createdDate }
+            let markerIndex = 0;
+            pts.forEach((p) => {
+                const lat = toNum(p.Latitude ?? p.latitude ?? p.lat ?? p.latDeg ?? p.lat_deg);
+                const lon = toNum(p.Longitude ?? p.longitude ?? p.lon ?? p.lonDeg ?? p.lon_deg);
+                if (lat == null || lon == null) return;
+
+                const myIdx = markerIndex++;
+                latlngs.push([lat, lon]);
+
+                const m = L.circleMarker([lat, lon], { radius: 5, color: '#1e88e5', fillColor: '#1e88e5', fillOpacity: 0.95 }).addTo(map);
+                const createdRaw = p.CreatedAt ?? p.createdAt ?? p.timestamp ?? p.time ?? null;
+                const createdDate = parseTimestamp(createdRaw);
+                const createdText = createdDate ? formatLocal(createdDate) : null;
+                m.bindPopup(`<div style="min-width:140px"><div><strong>Lat:</strong> ${lat}</div><div><strong>Lon:</strong> ${lon}</div>${createdDate ? `<div style='font-size:12px;color:#9aa4b2'>${formatLocal(createdDate)}</div>` : ''}</div>`);
+                mapMarkers.push(m);
+
+                m.on('click', () => { selectMarker(myIdx, true); });
+
+                markerMapping.push({ p, idx: myIdx, lat, lon, createdDate, createdText });
+            });
+
+            // Sort mapping for sidebar list by CreatedAt DESC (newest first)
+            const mappingForList = markerMapping.slice().sort((a, b) => {
+                const ta = a.createdDate ? a.createdDate.getTime() : 0;
+                const tb = b.createdDate ? b.createdDate.getTime() : 0;
+                return tb - ta;
+            });
+
+            // Render sorted list in sidebar referencing correct marker indices
+            if (pointsContainer) {
+                pointsContainer.innerHTML = '';
+                mappingForList.forEach(item => {
+                    const { idx, lat, lon, createdText } = item;
+                    const entry = document.createElement('div');
+                    entry.className = 'point';
+                    entry.dataset.index = String(idx);
+                    entry.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700">${lat.toFixed(6)}, ${lon.toFixed(6)}</div><div style="font-size:11px;color:#9aa4b2">${createdText || '—'}</div></div>`;
+                    entry.addEventListener('click', () => { selectMarker(idx, true); });
+                    pointsContainer.appendChild(entry);
+                });
+            }
+
+            const pointsCountEl = document.getElementById('pointsCount');
+            if (pointsCountEl) pointsCountEl.innerText = String(mapMarkers.length);
+         
+             if (latlngs.length) {
+                 mapPath = L.polyline(latlngs, { color: 'blue' }).addTo(map);
+                 if (!didInitialFit) {
+                     try {
+                         if (latlngs.length === 1) {
+                             map.setView(latlngs[0], 15);
+                         } else {
+                             map.fitBounds(latlngs);
+                         }
+                     } catch (e) { }
+                     didInitialFit = true;
+                 }
+             }
+         } catch (e) {
+             console.error('loadPoints error', e);
+         }
+     }
+
+    function selectMarker(idx, pan = false) {
+        if (!Array.isArray(mapMarkers) || idx == null || idx < 0 || idx >= mapMarkers.length) return;
+        if (selectedMarkerIndex != null && mapMarkers[selectedMarkerIndex]) {
+            try { mapMarkers[selectedMarkerIndex].setStyle({ radius: 5, color: '#1e88e5', fillColor: '#1e88e5' }); } catch (e) {}
+            const prevEl = document.querySelector(`#pointsContainer .point[data-index='${selectedMarkerIndex}']`);
+            if (prevEl) prevEl.classList.remove('selected');
+        }
+
+        selectedMarkerIndex = idx;
+        const marker = mapMarkers[idx];
+        try { marker.setStyle({ radius: 8, color: '#ff9800', fillColor: '#ff9800' }); } catch (e) {}
+        try { marker.openPopup(); } catch (e) {}
+
+        const el = document.querySelector(`#pointsContainer .point[data-index='${idx}']`);
+        if (el) {
+            el.classList.add('selected');
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        if (pan) {
+            try {
+                const latlng = marker.getLatLng();
+                map.setView([latlng.lat, latlng.lng], 15);
+            } catch (e) {}
+        }
+    }
+
+    const fromEl = document.getElementById('fromPicker');
+    const toEl = document.getElementById('toPicker');
+    [fromEl, toEl].forEach(el => {
+        if (!el) return;
+        el.dataset.auto = 'true';
+        el.addEventListener('input', () => { el.dataset.auto = 'false'; el.dataset.userEdited = 'true'; });
+        el.addEventListener('change', () => { el.dataset.auto = 'false'; el.dataset.userEdited = 'true'; loadPoints(); });
+    });
+
+    setDefaultRange();
+    loadPoints();
+    setInterval(loadPoints, 2000);
+
+    const openBtn = document.getElementById('openSidebar');
+    const sidebarEl = document.getElementById('sidebar');
+    const backdropEl = document.getElementById('backdrop');
+
+    function setDetailsButtonVisible(visible) {
+        if (!openBtn) return;
+        openBtn.style.display = visible ? '' : 'none';
+    }
+
+    if (openBtn && sidebarEl && backdropEl) {
+        openBtn.addEventListener('click', () => {
+            const willOpen = !sidebarEl.classList.contains('open');
+            sidebarEl.classList.toggle('open');
+            backdropEl.classList.toggle('open');
+            if (willOpen) {
+                sidebarEl.style.background = 'rgba(11,18,28,0.95)';
+                sidebarEl.style.opacity = '1';
+                sidebarEl.style.zIndex = '1202';
+            }
+            setDetailsButtonVisible(!willOpen);
+        });
+
+        const closeHandler = () => {
+            sidebarEl.classList.remove('open');
+            backdropEl.classList.remove('open');
+            setDetailsButtonVisible(true);
+        };
+
+        const closeBtn = document.getElementById('closeSidebar');
+        if (closeBtn) closeBtn.addEventListener('click', closeHandler);
+        backdropEl.addEventListener('click', closeHandler);
+    }
+
+    const deleteBtn = document.getElementById('deleteAll');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', async () => {
+            if (!selectedDeviceId) {
+                alert('No device selected');
+                return;
+            }
+            if (!confirm('Delete all points for the selected device? This action cannot be undone.')) return;
+            try {
+                const delUrl = `/v1/admin/devices/${encodeURIComponent(selectedDeviceId)}/location/points`;
+                const resp = await fetch(delUrl, { method: 'DELETE', cache: 'no-store' });
+                if (resp.ok) {
+                    // refresh the entire page to ensure UI + server are in sync
+                    location.reload();
+                } else {
+                    alert('Failed to delete points: ' + resp.statusText);
+                }
+            } catch (e) { console.warn('delete error', e); alert('Delete failed'); }
+        });
+    }
+
+    // Fetch device status periodically and populate the status section.
+    async function fetchDeviceStatus() {
+        try {
+            // Only fetch when a device is selected
+            if (!selectedDeviceId) return;
+            const url = `/v1/admin/devices/${encodeURIComponent(selectedDeviceId)}/status`;
+            const resp = await fetch(url, { cache: 'no-store' });
+             if (!resp.ok) {
+                 // if endpoint not found or returns error, leave placeholders
+                 console.warn('fetchDeviceStatus: non-ok response', resp.status);
+                 return;
+             }
+             const data = await resp.json();
+             let device;
+              if (Array.isArray(data)) device = data[0] ?? null;
+              else if (Array.isArray(data?.devices)) device = data.devices[0] ?? null;
+              else device = data ?? null;
+
+            const setText = (id, v) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.innerText = (v === null || v === undefined) ? '—' : String(v);
+            };
+            const setBool = (id, v) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (v === null || v === undefined) { el.innerText = '—'; el.classList.remove('status-true'); el.classList.remove('status-false'); return; }
+                const bool = !!v;
+                el.innerText = bool ? 'Yes' : 'No';
+                el.classList.toggle('status-true', bool);
+                el.classList.toggle('status-false', !bool);
+            };
+
+            if (!device) {
+                // no device info available
+                setText('BatteryLevel', '—');
+                setBool('IsGPSOnline', null);
+                setBool('IsInAlarm', null);
+                setBool('IsButtonPressed', null);
+                setBool('IsInCharge', null);
+                const last = document.getElementById('lastFetched'); if (last) last.innerText = formatLocal(new Date());
+                const statusUpdatedEl = document.getElementById('statusUpdated'); if (statusUpdatedEl) statusUpdatedEl.innerText = '';
+                return;
+            }
+
+            const batteryVal = device.BatteryLevel ?? device.batteryLevel ?? device.battery ?? null;
+            if (batteryVal === null || batteryVal === undefined) setText('BatteryLevel', '—');
+            else setText('BatteryLevel', (typeof batteryVal === 'number') ? `${batteryVal}%` : String(batteryVal));
+
+            setBool('IsGPSOnline', device.IsGPSOnline ?? device.isGPSOnline ?? device.gpsOnline ?? null);
+            setBool('IsInAlarm', device.IsInAlarm ?? device.isInAlarm ?? device.inAlarm ?? null);
+            setBool('IsButtonPressed', device.IsButtonPressed ?? device.isButtonPressed ?? device.buttonPressed ?? null);
+            setBool('IsInCharge', device.IsInCharge ?? device.isInCharge ?? device.inCharge ?? null);
+
+            // UpdatedAt: try to parse and display local time
+            const rawUpdated = device.UpdatedAt ?? device.updatedAt ?? device.UpdatedAtUtc ?? device.updatedAtUtc ?? device.updatedAt;
+            const updatedDate = parseTimestamp(rawUpdated) ?? new Date();
+            const lastFetchedEl = document.getElementById('lastFetched');
+            if (lastFetchedEl) lastFetchedEl.innerText = formatLocal(updatedDate);
+
+            const statusUpdatedEl = document.getElementById('statusUpdated');
+            if (statusUpdatedEl) statusUpdatedEl.innerText = '';
+        } catch (e) {
+            console.warn('fetchDeviceStatus error', e);
+        }
+    }
+
+    // start polling device status every 2 seconds to keep UI current
+    fetchDeviceStatus();
+    setInterval(fetchDeviceStatus, 2000);
+
+</script>

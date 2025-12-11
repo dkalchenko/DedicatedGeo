@@ -35,6 +35,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Static", "Static", "{A8DEAC
 		build.targets = build.targets
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DedicatedGeo.Mono.Entities", "DedicatedGeo.Mono.Entities\DedicatedGeo.Mono.Entities.csproj", "{75EFDB16-DE94-416E-9682-8B3C78E293B2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -77,6 +79,10 @@ Global
 		{EBEDE7DE-9A6F-4480-8E93-192D48D05ED4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EBEDE7DE-9A6F-4480-8E93-192D48D05ED4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EBEDE7DE-9A6F-4480-8E93-192D48D05ED4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75EFDB16-DE94-416E-9682-8B3C78E293B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75EFDB16-DE94-416E-9682-8B3C78E293B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75EFDB16-DE94-416E-9682-8B3C78E293B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75EFDB16-DE94-416E-9682-8B3C78E293B2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{E08A9E5F-B8A3-43E0-A192-32BB51E816A8} = {2763E7DD-403F-4876-A5AC-255CA811F651}
@@ -88,5 +94,6 @@ Global
 		{313CA512-597F-45B0-B195-AB97E3B48963} = {BD22EA4A-006A-4BC4-BB26-ADFB84AA62CB}
 		{5E63CC87-2E1E-472A-A826-402CA1D4E377} = {BD22EA4A-006A-4BC4-BB26-ADFB84AA62CB}
 		{EBEDE7DE-9A6F-4480-8E93-192D48D05ED4} = {BD22EA4A-006A-4BC4-BB26-ADFB84AA62CB}
+		{75EFDB16-DE94-416E-9682-8B3C78E293B2} = {BD22EA4A-006A-4BC4-BB26-ADFB84AA62CB}
 	EndGlobalSection
 EndGlobal

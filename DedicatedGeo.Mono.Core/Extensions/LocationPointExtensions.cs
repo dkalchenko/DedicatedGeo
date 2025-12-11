@@ -14,6 +14,7 @@ public static class LocationPointExtensions
     }
     public static LocationPointDto ToLocationPointDto(this LocationPoint c) => new LocationPointDto
     {
+        LocationPointId = c.LocationPointId,
         Latitude = c.Point.Y,
         Longitude = c.Point.X,
         CreatedAt = c.CreatedAt

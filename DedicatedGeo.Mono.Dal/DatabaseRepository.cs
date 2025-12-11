@@ -22,6 +22,7 @@ public class DatabaseRepository : DbContext, IDatabaseRepository
 
     public DbSet<LocationPoint> LocationPoints { get; init; }
     public DbSet<DeviceStatus> DeviceStatuses { get; init; }
+    public DbSet<Device> Devices { get; init; }
 
     public virtual async Task SaveChangesAsync(CancellationToken? cancellationToken)
     {

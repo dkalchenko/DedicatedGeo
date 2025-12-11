@@ -16,6 +16,7 @@
         <ProjectReference Include="..\DedicatedGeo.Mono.Core.Abstractions\DedicatedGeo.Mono.Core.Abstractions.csproj" />
         <ProjectReference Include="..\DedicatedGeo.Mono.Dal.Abstractions\DedicatedGeo.Mono.Dal.Abstractions.csproj" />
         <ProjectReference Include="..\DedicatedGeo.Mono.Dtos\DedicatedGeo.Mono.Dtos.csproj" />
+        <ProjectReference Include="..\DedicatedGeo.Mono.Entities\DedicatedGeo.Mono.Entities.csproj" />
     </ItemGroup>
 
 </Project>
