@@ -34,6 +34,7 @@ public class PutDeviceStatusPublicRequestHandler: IRequestHandler<PutDeviceStatu
         deviceStatus.IsInAlarm = request.IsInAlarm;
         deviceStatus.IsInCharge = request.IsInCharge;
         deviceStatus.IsGPSOnline = request.IsGPSOnline;
+        deviceStatus.UpdatedAt = DateTime.UtcNow;
 
         await _repository.SaveChangesAsync(cancellationToken);
     }

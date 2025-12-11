@@ -7,4 +7,5 @@ public class GetDeviceStatusPublicResponse
     public bool IsButtonPressed { get; set; }
     public bool IsInCharge { get; set; }
     public bool IsGPSOnline { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }

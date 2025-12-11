@@ -27,15 +27,16 @@
     .sidebar-backdrop{
         position: fixed;
         inset: 0;
-        /* increased opacity for a more visible backdrop */
-        background: rgba(2,6,23,0.75);
+        /* make backdrop transparent while preserving click-to-close behavior */
+        background: transparent;
         z-index: 1100;
         opacity: 0;
         pointer-events: none;
         transition: opacity .18s ease;
     }
     .sidebar-backdrop.open{
-        opacity: 1;
+        /* keep interactive but remain fully transparent to avoid darkening the map */
+        opacity: 0;
         pointer-events: auto;
     }
 
@@ -45,11 +46,14 @@
         right: 0;
         height: 100vh;
         width: min(520px, 92vw);
-        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+        /* slightly transparent sidebar background so the map faintly shows through */
+        background: rgba(11,18,24,0.92);
+        box-sizing: border-box; /* include padding in 100vh height calculations */
+        overflow: hidden; /* prevent the sidebar itself from scrolling; child handles scroll */
         box-shadow: -30px 0 60px rgba(2,6,23,0.6);
         transform: translateX(105%);
         transition: transform .28s cubic-bezier(.2,.9,.25,1);
-        z-index: 1102;
+        z-index: 1202;
         display: flex;
         flex-direction: column;
         padding: 18px;
@@ -59,6 +63,36 @@
         border-left: 1px solid rgba(255,255,255,0.03);
     }
     .sidebar.open{ transform: translateX(0); }
+
+    /* ensure header and generic sections don't expand and push the status off-screen */
+    .sidebar-header, .section { flex: 0 0 auto; }
+     
+    /* make the points section take remaining space and scroll internally so statusSection stays visible */
+    #pointsSection{
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto; /* allow to grow and shrink */
+        min-height: 0; /* allow children to scroll inside flex item */
+        overflow: hidden; /* children handle scrolling */
+    }
+
+    /* let the points container scroll inside the pointsSection instead of reserving too much global space */
+    .points-container{
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+        overflow-y:auto;
+        overflow-x:hidden;
+        flex: 1 1 auto; /* take remaining space inside #pointsSection */
+        min-height: 0; /* allow flex children to shrink and scroll */
+        padding-bottom:6px;
+        width:100%;
+    }
+
+    /* keep status section from shrinking so it remains visible */
+    #statusSection{
+        flex: 0 0 auto;
+    }
 
     .sidebar-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
     .title{ display:flex; align-items:center; gap:12px; }
@@ -71,17 +105,6 @@
     .section h4{ margin:0 0 8px 0; font-size:13px; color:#dfe8f7; display:flex;justify-content:space-between; align-items:center; }
     .section .count{ font-size:12px; color:#9aa4b2; }
 
-    /* Points list: stack vertically, scrollable, cap at 70% of viewport height */
-    .points-container{
-        display:flex;
-        flex-direction:column;
-        gap:8px;
-        overflow-y:auto;
-        overflow-x:hidden;
-        max-height:70vh; /* cap height to 70% of viewport */
-        padding-bottom:6px;
-        width:100%;
-    }
     /* Groups will render as full-width stacked columns (JS can still populate 3 groups) */
     .group{
         width:100%;
@@ -91,6 +114,10 @@
     }
     .point{ background: rgba(255,255,255,0.03); border-radius:8px; padding:8px; font-size:12px; color:#e6eef8; box-shadow:0 4px 14px rgba(4,6,12,0.35); border:1px solid rgba(255,255,255,0.02); }
     .point .meta{ color:#9aa4b2; font-size:11px; margin-top:6px; }
+
+    /* list item hover and selected state */
+    .point:hover { cursor: pointer; transform: translateX(2px); }
+    .point.selected{ border: 1px solid rgba(90,179,255,0.9); background: linear-gradient(180deg, rgba(90,179,255,0.06), rgba(90,179,255,0.02)); }
 
     .status-grid{ display:grid; grid-template-columns: repeat(2,1fr); gap:8px; margin-top:6px; }
     .status-item{ padding:10px; border-radius:8px; background:linear-gradient(180deg, rgba(255,255,255,0.012), rgba(0,0,0,0.04)); display:flex; flex-direction:column; gap:6px; font-size:13px; }
@@ -190,6 +217,10 @@
     // state
     let mapMarkers = [];
     let mapPath = null;
+    // ensure we only auto-focus the map on the first successful load
+    let didInitialFit = false;
+    // currently selected marker index (in mapMarkers) or null
+    let selectedMarkerIndex = null;
 
     // helpers
     const toNum = v => { if (v === undefined || v === null) return null; const n = Number(String(v).replace(',', '.')); return Number.isFinite(n) ? n : null; };
@@ -200,15 +231,24 @@
         return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
     }
 
-    // convert datetime-local (local time) to ISO string (UTC) for API
+    // convert datetime-local (local time) or any ISO input to UTC ISO (no milliseconds, ends with Z)
     function localToISOString(localValue) {
         if (!localValue) return '';
+        // datetime-local pattern (no timezone)
         const m = localValue.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
-        if (!m) return new Date(localValue).toISOString();
-        const y = Number(m[1]); const mo = Number(m[2]) - 1; const d = Number(m[3]);
-        const hh = Number(m[4]); const mm = Number(m[5]); const ss = Number(m[6] || '0');
-        const dt = new Date(y, mo, d, hh, mm, ss);
-        return dt.toISOString();
+        let iso;
+        if (m) {
+            const y = Number(m[1]), mo = Number(m[2]) - 1, d = Number(m[3]);
+            const hh = Number(m[4]), mm = Number(m[5]), ss = Number(m[6] || '0');
+            // create a Date in local timezone for the local wall-clock, then convert to UTC ISO
+            const localDt = new Date(y, mo, d, hh, mm, ss);
+            iso = localDt.toISOString();
+        } else {
+            // input already has timezone or is parseable — normalize to UTC ISO
+            iso = new Date(localValue).toISOString();
+        }
+        // strip milliseconds to produce YYYY-MM-DDTHH:mm:ssZ
+        return iso.replace(/\.\d{3}Z$/, 'Z');
     }
 
     // set default time range: now-1h .. now, mark inputs as auto so they advance unless user edits
@@ -248,6 +288,8 @@
         mapMarkers.forEach(m => { try { map.removeLayer(m); } catch(e) {} });
         mapMarkers = [];
         if (mapPath) { try { map.removeLayer(mapPath); } catch(e) {} mapPath = null; }
+        // clear selection when map is cleared
+        selectedMarkerIndex = null;
     }
 
     // fetch points and render them
@@ -271,28 +313,104 @@
             const data = await resp.json();
             // support both array response and { points: [...] }
             const pts = Array.isArray(data) ? data : (Array.isArray(data?.points) ? data.points : []);
-            if (!pts.length) { clearMap(); return; }
+
+            // get the sidebar container early so we can update it even when no points are returned
+            const pointsContainer = document.getElementById('pointsContainer');
+
+            // if no points, clear map AND clear the sidebar list + counters so UI stays in sync
+            if (!pts.length) {
+                clearMap();
+                if (pointsContainer) pointsContainer.innerHTML = '';
+                const pointsCountEl = document.getElementById('pointsCount');
+                if (pointsCountEl) pointsCountEl.innerText = '0';
+                return;
+            }
 
             clearMap();
 
             const latlngs = [];
-            pts.forEach(p => {
+            // prepare container for new list
+            if (pointsContainer) pointsContainer.innerHTML = '';
+            
+            // keep markerIndex so indices are contiguous even when some pts are skipped
+            let markerIndex = 0;
+            pts.forEach((p) => {
                 const lat = toNum(p.Latitude ?? p.latitude ?? p.lat ?? p.latDeg ?? p.lat_deg);
                 const lon = toNum(p.Longitude ?? p.longitude ?? p.lon ?? p.lonDeg ?? p.lon_deg);
                 if (lat == null || lon == null) return;
+                const myIdx = markerIndex++;
                 latlngs.push([lat, lon]);
                 const m = L.circleMarker([lat, lon], { radius: 5, color: '#1e88e5', fillColor: '#1e88e5', fillOpacity: 0.95 }).addTo(map);
                 const created = p.CreatedAt ?? p.createdAt ?? p.timestamp ?? p.time ?? null;
                 m.bindPopup(`<div style="min-width:140px"><div><strong>Lat:</strong> ${lat}</div><div><strong>Lon:</strong> ${lon}</div>${created ? `<div style='font-size:12px;color:#9aa4b2'>${new Date(created).toLocaleString()}</div>` : ''}</div>`);
                 mapMarkers.push(m);
+
+                // attach marker click to select, scroll into view and pan the map (consistent with list clicks)
+                m.on('click', () => { selectMarker(myIdx, true); });
+
+                // populate list entry
+                if (pointsContainer) {
+                    const item = document.createElement('div');
+                    item.className = 'point';
+                    item.dataset.index = String(myIdx);
+                    const createdText = created ? new Date(created).toLocaleString() : '—';
+                    item.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700">${lat.toFixed(6)}, ${lon.toFixed(6)}</div><div style="font-size:11px;color:#9aa4b2">${createdText}</div></div>`;
+                    item.addEventListener('click', () => { selectMarker(myIdx, true); });
+                    pointsContainer.appendChild(item);
+                }
             });
 
-            if (latlngs.length) {
-                mapPath = L.polyline(latlngs, { color: 'blue' }).addTo(map);
-                try { map.fitBounds(latlngs); } catch(e) { /* ignore */ }
-            }
-        } catch (e) {
-            console.error('loadPoints error', e);
+            // update points count header
+            const pointsCountEl = document.getElementById('pointsCount');
+            if (pointsCountEl) pointsCountEl.innerText = String(mapMarkers.length);
+         
+             if (latlngs.length) {
+                 mapPath = L.polyline(latlngs, { color: 'blue' }).addTo(map);
+                 // Only auto-fit the map on the first load. Subsequent refreshes won't change the view.
+                 if (!didInitialFit) {
+                     try {
+                         if (latlngs.length === 1) {
+                             // single point: center and zoom in to a reasonable level
+                             map.setView(latlngs[0], 15);
+                         } else {
+                             map.fitBounds(latlngs);
+                         }
+                     } catch (e) { /* ignore */ }
+                     didInitialFit = true;
+                 }
+             }
+         } catch (e) {
+             console.error('loadPoints error', e);
+         }
+     }
+
+    // helper: select a marker by index, highlight it, open popup and optionally pan into view
+    function selectMarker(idx, pan = false) {
+        if (!Array.isArray(mapMarkers) || idx == null || idx < 0 || idx >= mapMarkers.length) return;
+        // reset previous marker style and list item
+        if (selectedMarkerIndex != null && mapMarkers[selectedMarkerIndex]) {
+            try { mapMarkers[selectedMarkerIndex].setStyle({ radius: 5, color: '#1e88e5', fillColor: '#1e88e5' }); } catch (e) {}
+            const prevEl = document.querySelector(`#pointsContainer .point[data-index='${selectedMarkerIndex}']`);
+            if (prevEl) prevEl.classList.remove('selected');
+        }
+
+        selectedMarkerIndex = idx;
+        const marker = mapMarkers[idx];
+        try { marker.setStyle({ radius: 8, color: '#ff9800', fillColor: '#ff9800' }); } catch (e) {}
+        try { marker.openPopup(); } catch (e) {}
+
+        const el = document.querySelector(`#pointsContainer .point[data-index='${idx}']`);
+        if (el) {
+            el.classList.add('selected');
+            // scroll into view within the container
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        if (pan) {
+            try {
+                const latlng = marker.getLatLng();
+                map.setView([latlng.lat, latlng.lng], 15);
+            } catch (e) {}
         }
     }
 
@@ -302,7 +420,9 @@
     [fromEl, toEl].forEach(el => {
         if (!el) return;
         el.dataset.auto = 'true';
-        el.addEventListener('input', () => { el.dataset.auto = 'false'; el.dataset.userEdited = 'true'; loadPoints(); });
+        // mark as user-edited while typing, but only refresh when the user finishes (change event)
+        el.addEventListener('input', () => { el.dataset.auto = 'false'; el.dataset.userEdited = 'true'; });
+        el.addEventListener('change', () => { el.dataset.auto = 'false'; el.dataset.userEdited = 'true'; loadPoints(); });
     });
 
     // set initial default range and start 2s polling
@@ -311,11 +431,41 @@
     setInterval(loadPoints, 2000);
 
     // keep minimal sidebar handlers
-    document.getElementById('openSidebar').addEventListener('click', () => { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('backdrop').classList.toggle('open'); });
-    document.getElementById('closeSidebar').addEventListener('click', () => { document.getElementById('sidebar').classList.remove('open'); document.getElementById('backdrop').classList.remove('open'); });
+    const openBtn = document.getElementById('openSidebar');
+    const sidebarEl = document.getElementById('sidebar');
+    const backdropEl = document.getElementById('backdrop');
 
-    // close sidebar when clicking outside of it
-    document.getElementById('backdrop').addEventListener('click', () => { document.getElementById('sidebar').classList.remove('open'); document.getElementById('backdrop').classList.remove('open'); });
+    function setDetailsButtonVisible(visible) {
+        if (!openBtn) return;
+        // restore default display when visible, otherwise hide completely
+        openBtn.style.display = visible ? '' : 'none';
+    }
+
+    if (openBtn && sidebarEl && backdropEl) {
+        openBtn.addEventListener('click', () => {
+            const willOpen = !sidebarEl.classList.contains('open');
+            sidebarEl.classList.toggle('open');
+            backdropEl.classList.toggle('open');
+            // Ensure the sidebar is visibly opaque in case other styles override it
+            if (willOpen) {
+                sidebarEl.style.background = '#0b1218';
+                sidebarEl.style.opacity = '1';
+                sidebarEl.style.zIndex = '1202';
+            }
+            // hide the Details button when opening, show when closing
+            setDetailsButtonVisible(!willOpen);
+        });
+
+        const closeHandler = () => {
+            sidebarEl.classList.remove('open');
+            backdropEl.classList.remove('open');
+            setDetailsButtonVisible(true);
+        };
+
+        const closeBtn = document.getElementById('closeSidebar');
+        if (closeBtn) closeBtn.addEventListener('click', closeHandler);
+        backdropEl.addEventListener('click', closeHandler);
+    }
 
     // delete handler (keeps existing behavior)
     document.getElementById('deleteAll').addEventListener('click', async () => {

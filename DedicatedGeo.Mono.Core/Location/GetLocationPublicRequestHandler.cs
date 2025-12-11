@@ -18,8 +18,8 @@ public class GetLocationPublicRequestHandler: IRequestHandler<GetLocationPointsP
     
     public async Task<GetLocationPointsPublicResponse> Handle(GetLocationPointsPublicRequest request, CancellationToken cancellationToken)
     {
-        var to = request.To;
-        var from = request.From;
+        var to = request.To.ToUniversalTime();
+        var from = request.From.ToUniversalTime();
         var points = await _repository.LocationPoints
             .Where(x => x.CreatedAt >= from && x.CreatedAt <= to)
             .ToListAsync(cancellationToken: cancellationToken);

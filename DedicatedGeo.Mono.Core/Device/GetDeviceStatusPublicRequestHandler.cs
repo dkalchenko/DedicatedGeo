@@ -32,6 +32,7 @@ public class GetDeviceStatusPublicRequestHandler: IRequestHandler<GetDeviceStatu
             IsButtonPressed = deviceStatus.IsButtonPressed,
             IsInAlarm = deviceStatus.IsInAlarm,
             IsInCharge = deviceStatus.IsInCharge,
+            UpdatedAt = deviceStatus.UpdatedAt,
         };
     }
 }
