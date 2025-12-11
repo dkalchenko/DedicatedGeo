@@ -24,17 +24,26 @@ public class PutDeviceStatusPublicRequestHandler: IRequestHandler<PutDeviceStatu
         {
             deviceStatus = new DeviceStatus
             {
-                DeviceStatusId = Guid.Parse(OwnConstants.DeviceId)
+                DeviceStatusId = Guid.Parse(OwnConstants.DeviceId),
+                BatteryLevel = request.BatteryLevel,
+                IsButtonPressed = request.IsButtonPressed,
+                IsInAlarm = request.IsInAlarm,
+                IsInCharge = request.IsInCharge,
+                IsGPSOnline = request.IsGPSOnline,
+                UpdatedAt = DateTime.UtcNow
             };
-            _repository.DeviceStatuses.Attach(deviceStatus);
+            _repository.DeviceStatuses.Add(deviceStatus);
+        }
+        else
+        {
+            deviceStatus.BatteryLevel = request.BatteryLevel;
+            deviceStatus.IsButtonPressed = request.IsButtonPressed;
+            deviceStatus.IsInAlarm = request.IsInAlarm;
+            deviceStatus.IsInCharge = request.IsInCharge;
+            deviceStatus.IsGPSOnline = request.IsGPSOnline;
+            deviceStatus.UpdatedAt = DateTime.UtcNow;    
         }
         
-        deviceStatus.BatteryLevel = request.BatteryLevel;
-        deviceStatus.IsButtonPressed = request.IsButtonPressed;
-        deviceStatus.IsInAlarm = request.IsInAlarm;
-        deviceStatus.IsInCharge = request.IsInCharge;
-        deviceStatus.IsGPSOnline = request.IsGPSOnline;
-        deviceStatus.UpdatedAt = DateTime.UtcNow;
 
         await _repository.SaveChangesAsync(cancellationToken);
     }

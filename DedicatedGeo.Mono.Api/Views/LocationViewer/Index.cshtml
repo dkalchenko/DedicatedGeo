@@ -8,34 +8,32 @@
 <style>
     html, body, #map { height: 100vh; margin: 0; padding: 0; }
 
+    /* make the Details button match the datetime picker / sidebar look */
     #openSidebar {
         position: absolute;
         top: 12px;
-        right: 120px;
-        /* place the Details button under the backdrop (backdrop z-index is 1100) */
-        z-index: 1098;
-        background: linear-gradient(135deg,#7c5cff,#5ab3ff);
-        color: white;
-        border: none;
+        right: 20px;
+        z-index: 1104;
+        background: rgba(11,18,28,0.85);
+        color: #e6eef8;
+        border: 1px solid rgba(255,255,255,0.04);
         padding: 8px 12px;
-        border-radius: 6px;
+        border-radius: 8px;
         cursor: pointer;
         font-weight: 600;
-        font-family: sans-serif;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
     }
 
     .sidebar-backdrop{
         position: fixed;
         inset: 0;
-        /* make backdrop transparent while preserving click-to-close behavior */
         background: transparent;
         z-index: 1100;
         opacity: 0;
         pointer-events: none;
-        transition: opacity .18s ease;
+        transition: opacity .18s ease, background-color .18s ease;
     }
     .sidebar-backdrop.open{
-        /* keep interactive but remain fully transparent to avoid darkening the map */
         opacity: 0;
         pointer-events: auto;
     }
@@ -46,10 +44,10 @@
         right: 0;
         height: 100vh;
         width: min(520px, 92vw);
-        /* slightly transparent sidebar background so the map faintly shows through */
-        background: rgba(11,18,24,0.92);
-        box-sizing: border-box; /* include padding in 100vh height calculations */
-        overflow: hidden; /* prevent the sidebar itself from scrolling; child handles scroll */
+        /* align sidebar look with the picker: slightly translucent dark surface */
+        background: rgba(11,18,28,0.95);
+        box-sizing: border-box;
+        overflow: hidden;
         box-shadow: -30px 0 60px rgba(2,6,23,0.6);
         transform: translateX(105%);
         transition: transform .28s cubic-bezier(.2,.9,.25,1);
@@ -64,32 +62,28 @@
     }
     .sidebar.open{ transform: translateX(0); }
 
-    /* ensure header and generic sections don't expand and push the status off-screen */
     .sidebar-header, .section { flex: 0 0 auto; }
-     
-    /* make the points section take remaining space and scroll internally so statusSection stays visible */
+    
     #pointsSection{
         display: flex;
         flex-direction: column;
-        flex: 1 1 auto; /* allow to grow and shrink */
-        min-height: 0; /* allow children to scroll inside flex item */
-        overflow: hidden; /* children handle scrolling */
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
     }
 
-    /* let the points container scroll inside the pointsSection instead of reserving too much global space */
     .points-container{
         display:flex;
         flex-direction:column;
         gap:8px;
         overflow-y:auto;
         overflow-x:hidden;
-        flex: 1 1 auto; /* take remaining space inside #pointsSection */
-        min-height: 0; /* allow flex children to shrink and scroll */
+        flex: 1 1 auto;
+        min-height: 0;
         padding-bottom:6px;
         width:100%;
     }
 
-    /* keep status section from shrinking so it remains visible */
     #statusSection{
         flex: 0 0 auto;
     }
@@ -100,12 +94,10 @@
     .title h3{ margin:0; font-size:16px; }
     .close-btn{ background:transparent;border:none;color:#9aa4b2;cursor:pointer;padding:8px;border-radius:8px; }
 
-    /* stacked sections (no "zones" grid) */
     .section { background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.03)); border-radius:12px; padding:12px; border:1px solid rgba(255,255,255,0.03); }
     .section h4{ margin:0 0 8px 0; font-size:13px; color:#dfe8f7; display:flex;justify-content:space-between; align-items:center; }
     .section .count{ font-size:12px; color:#9aa4b2; }
 
-    /* Groups will render as full-width stacked columns (JS can still populate 3 groups) */
     .group{
         width:100%;
         display:flex;
@@ -115,7 +107,6 @@
     .point{ background: rgba(255,255,255,0.03); border-radius:8px; padding:8px; font-size:12px; color:#e6eef8; box-shadow:0 4px 14px rgba(4,6,12,0.35); border:1px solid rgba(255,255,255,0.02); }
     .point .meta{ color:#9aa4b2; font-size:11px; margin-top:6px; }
 
-    /* list item hover and selected state */
     .point:hover { cursor: pointer; transform: translateX(2px); }
     .point.selected{ border: 1px solid rgba(90,179,255,0.9); background: linear-gradient(180deg, rgba(90,179,255,0.06), rgba(90,179,255,0.02)); }
 
@@ -129,7 +120,6 @@
     .btn{ padding:8px 12px; border-radius:9px; border:none; cursor:pointer; font-weight:600; }
     .btn.danger{ background: linear-gradient(180deg,#ef4444,#c81b1b); color:white; }
 
-    /* datetime picker styled similar to sidebar */
     .datetime-row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
     .datetime-row label{ font-size:12px; color:#9aa4b2; margin-right:6px; }
     .datetime-input{ background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.04); color:#e6eef8; padding:8px; border-radius:8px; }
@@ -152,7 +142,7 @@
     <input id="toPicker" class="datetime-input" type="datetime-local" step="1" />
 </div>
 
-<button id="openSidebar">Details</button>
+<button id="openSidebar">Open Sidebar</button>
 
 <div id="backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
 
@@ -184,7 +174,7 @@
         <h4>Status <span id="statusUpdated" class="count"></span></h4>
         <div class="status-grid" id="statusGrid">
             <div class="status-item">
-                <div class="label">Battery</div>
+                <div class="label">Battery Level</div>
                 <div id="BatteryLevel" class="val">—</div>
             </div>
             <div class="status-item">
@@ -200,7 +190,7 @@
                 <div id="IsButtonPressed" class="val status-false">—</div>
             </div>
             <div class="status-item" style="grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center;">
-                <div style="font-size:13px;color:#9aa4b2">Last fetched</div>
+                <div style="font-size:13px;color:#9aa4b2">Updated At</div>
                 <div id="lastFetched" style="font-size:12px;color:#9aa4b2">—</div>
             </div>
         </div>
@@ -217,13 +207,31 @@
     // state
     let mapMarkers = [];
     let mapPath = null;
-    // ensure we only auto-focus the map on the first successful load
     let didInitialFit = false;
-    // currently selected marker index (in mapMarkers) or null
     let selectedMarkerIndex = null;
 
     // helpers
     const toNum = v => { if (v === undefined || v === null) return null; const n = Number(String(v).replace(',', '.')); return Number.isFinite(n) ? n : null; };
+
+    // parse timestamp values robustly (supports unix seconds, unix milliseconds, ISO strings and Date objects)
+    function parseTimestamp(v) {
+        if (v == null) return null;
+        if (v instanceof Date) return v;
+        if (typeof v === 'number') {
+            // heuristic: values > 1e12 are milliseconds, otherwise seconds
+            return new Date(v > 1e12 ? v : v * 1000);
+        }
+        if (typeof v === 'string') {
+            // numeric string?
+            if (/^\d+$/.test(v)) {
+                const n = Number(v);
+                return new Date(n > 1e12 ? n : n * 1000);
+            }
+            const d = new Date(v);
+            if (!isNaN(d)) return d;
+        }
+        return null;
+    }
 
     // produce a datetime-local string like YYYY-MM-DDTHH:mm:ss
     function toDateTimeLocal(dt) {
@@ -234,24 +242,19 @@
     // convert datetime-local (local time) or any ISO input to UTC ISO (no milliseconds, ends with Z)
     function localToISOString(localValue) {
         if (!localValue) return '';
-        // datetime-local pattern (no timezone)
         const m = localValue.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
         let iso;
         if (m) {
             const y = Number(m[1]), mo = Number(m[2]) - 1, d = Number(m[3]);
             const hh = Number(m[4]), mm = Number(m[5]), ss = Number(m[6] || '0');
-            // create a Date in local timezone for the local wall-clock, then convert to UTC ISO
             const localDt = new Date(y, mo, d, hh, mm, ss);
             iso = localDt.toISOString();
         } else {
-            // input already has timezone or is parseable — normalize to UTC ISO
             iso = new Date(localValue).toISOString();
         }
-        // strip milliseconds to produce YYYY-MM-DDTHH:mm:ssZ
         return iso.replace(/\.\d{3}Z$/, 'Z');
     }
 
-    // set default time range: now-1h .. now, mark inputs as auto so they advance unless user edits
     function setDefaultRange() {
         const now = new Date();
         const oneHourAgo = new Date(now.getTime() - 60*60*1000);
@@ -265,7 +268,6 @@
         }
     }
 
-    // build the API URL using current datetime inputs (convert to ISO)
     function buildUrl() {
         let url = '/v1/public/location/points';
         const params = [];
@@ -283,19 +285,15 @@
         return url;
     }
 
-    // clear markers and polyline
     function clearMap() {
         mapMarkers.forEach(m => { try { map.removeLayer(m); } catch(e) {} });
         mapMarkers = [];
         if (mapPath) { try { map.removeLayer(mapPath); } catch(e) {} mapPath = null; }
-        // clear selection when map is cleared
         selectedMarkerIndex = null;
     }
 
-    // fetch points and render them
     async function loadPoints() {
         try {
-            // if both pickers are still auto, advance them before fetch so default window follows time
             const fromEl = document.getElementById('fromPicker');
             const toEl = document.getElementById('toPicker');
             const now = new Date();
@@ -311,13 +309,10 @@
             const resp = await fetch(url, { cache: 'no-store' });
             if (!resp.ok) return;
             const data = await resp.json();
-            // support both array response and { points: [...] }
             const pts = Array.isArray(data) ? data : (Array.isArray(data?.points) ? data.points : []);
 
-            // get the sidebar container early so we can update it even when no points are returned
             const pointsContainer = document.getElementById('pointsContainer');
 
-            // if no points, clear map AND clear the sidebar list + counters so UI stays in sync
             if (!pts.length) {
                 clearMap();
                 if (pointsContainer) pointsContainer.innerHTML = '';
@@ -329,10 +324,8 @@
             clearMap();
 
             const latlngs = [];
-            // prepare container for new list
             if (pointsContainer) pointsContainer.innerHTML = '';
-            
-            // keep markerIndex so indices are contiguous even when some pts are skipped
+
             let markerIndex = 0;
             pts.forEach((p) => {
                 const lat = toNum(p.Latitude ?? p.latitude ?? p.lat ?? p.latDeg ?? p.lat_deg);
@@ -341,41 +334,37 @@
                 const myIdx = markerIndex++;
                 latlngs.push([lat, lon]);
                 const m = L.circleMarker([lat, lon], { radius: 5, color: '#1e88e5', fillColor: '#1e88e5', fillOpacity: 0.95 }).addTo(map);
-                const created = p.CreatedAt ?? p.createdAt ?? p.timestamp ?? p.time ?? null;
-                m.bindPopup(`<div style="min-width:140px"><div><strong>Lat:</strong> ${lat}</div><div><strong>Lon:</strong> ${lon}</div>${created ? `<div style='font-size:12px;color:#9aa4b2'>${new Date(created).toLocaleString()}</div>` : ''}</div>`);
+                const createdRaw = p.CreatedAt ?? p.createdAt ?? p.timestamp ?? p.time ?? null;
+                const createdDate = parseTimestamp(createdRaw);
+                const createdText = createdDate ? createdDate.toLocaleString() : null;
+                m.bindPopup(`<div style="min-width:140px"><div><strong>Lat:</strong> ${lat}</div><div><strong>Lon:</strong> ${lon}</div>${createdDate ? `<div style='font-size:12px;color:#9aa4b2'>${createdDate.toLocaleString()}</div>` : ''}</div>`);
                 mapMarkers.push(m);
 
-                // attach marker click to select, scroll into view and pan the map (consistent with list clicks)
                 m.on('click', () => { selectMarker(myIdx, true); });
 
-                // populate list entry
                 if (pointsContainer) {
                     const item = document.createElement('div');
                     item.className = 'point';
                     item.dataset.index = String(myIdx);
-                    const createdText = created ? new Date(created).toLocaleString() : '—';
-                    item.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700">${lat.toFixed(6)}, ${lon.toFixed(6)}</div><div style="font-size:11px;color:#9aa4b2">${createdText}</div></div>`;
+                    item.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700">${lat.toFixed(6)}, ${lon.toFixed(6)}</div><div style="font-size:11px;color:#9aa4b2">${createdText || '—'}</div></div>`;
                     item.addEventListener('click', () => { selectMarker(myIdx, true); });
                     pointsContainer.appendChild(item);
                 }
             });
 
-            // update points count header
             const pointsCountEl = document.getElementById('pointsCount');
             if (pointsCountEl) pointsCountEl.innerText = String(mapMarkers.length);
          
              if (latlngs.length) {
                  mapPath = L.polyline(latlngs, { color: 'blue' }).addTo(map);
-                 // Only auto-fit the map on the first load. Subsequent refreshes won't change the view.
                  if (!didInitialFit) {
                      try {
                          if (latlngs.length === 1) {
-                             // single point: center and zoom in to a reasonable level
                              map.setView(latlngs[0], 15);
                          } else {
                              map.fitBounds(latlngs);
                          }
-                     } catch (e) { /* ignore */ }
+                     } catch (e) { }
                      didInitialFit = true;
                  }
              }
@@ -384,10 +373,8 @@
          }
      }
 
-    // helper: select a marker by index, highlight it, open popup and optionally pan into view
     function selectMarker(idx, pan = false) {
         if (!Array.isArray(mapMarkers) || idx == null || idx < 0 || idx >= mapMarkers.length) return;
-        // reset previous marker style and list item
         if (selectedMarkerIndex != null && mapMarkers[selectedMarkerIndex]) {
             try { mapMarkers[selectedMarkerIndex].setStyle({ radius: 5, color: '#1e88e5', fillColor: '#1e88e5' }); } catch (e) {}
             const prevEl = document.querySelector(`#pointsContainer .point[data-index='${selectedMarkerIndex}']`);
@@ -402,7 +389,6 @@
         const el = document.querySelector(`#pointsContainer .point[data-index='${idx}']`);
         if (el) {
             el.classList.add('selected');
-            // scroll into view within the container
             el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
@@ -414,30 +400,25 @@
         }
     }
 
-    // wire up pickers: mark user-edited and prevent auto-advance
     const fromEl = document.getElementById('fromPicker');
     const toEl = document.getElementById('toPicker');
     [fromEl, toEl].forEach(el => {
         if (!el) return;
         el.dataset.auto = 'true';
-        // mark as user-edited while typing, but only refresh when the user finishes (change event)
         el.addEventListener('input', () => { el.dataset.auto = 'false'; el.dataset.userEdited = 'true'; });
         el.addEventListener('change', () => { el.dataset.auto = 'false'; el.dataset.userEdited = 'true'; loadPoints(); });
     });
 
-    // set initial default range and start 2s polling
     setDefaultRange();
     loadPoints();
     setInterval(loadPoints, 2000);
 
-    // keep minimal sidebar handlers
     const openBtn = document.getElementById('openSidebar');
     const sidebarEl = document.getElementById('sidebar');
     const backdropEl = document.getElementById('backdrop');
 
     function setDetailsButtonVisible(visible) {
         if (!openBtn) return;
-        // restore default display when visible, otherwise hide completely
         openBtn.style.display = visible ? '' : 'none';
     }
 
@@ -446,13 +427,11 @@
             const willOpen = !sidebarEl.classList.contains('open');
             sidebarEl.classList.toggle('open');
             backdropEl.classList.toggle('open');
-            // Ensure the sidebar is visibly opaque in case other styles override it
             if (willOpen) {
-                sidebarEl.style.background = '#0b1218';
+                sidebarEl.style.background = 'rgba(11,18,28,0.95)';
                 sidebarEl.style.opacity = '1';
                 sidebarEl.style.zIndex = '1202';
             }
-            // hide the Details button when opening, show when closing
             setDetailsButtonVisible(!willOpen);
         });
 
@@ -467,9 +446,88 @@
         backdropEl.addEventListener('click', closeHandler);
     }
 
-    // delete handler (keeps existing behavior)
-    document.getElementById('deleteAll').addEventListener('click', async () => {
-        if (!confirm('Delete all points? This action cannot be undone.')) return;
-        try { await fetch('/v1/public/location/points', { method: 'DELETE', cache: 'no-store' }); loadPoints(); } catch (e) { console.warn('delete error', e); }
-    });
+    const deleteBtn = document.getElementById('deleteAll');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', async () => {
+            if (!confirm('Delete all points? This action cannot be undone.')) return;
+            try {
+                const resp = await fetch('/v1/public/location/points', { method: 'DELETE', cache: 'no-store' });
+                if (resp.ok) {
+                    // refresh the entire page to ensure UI + server are in sync
+                    location.reload();
+                } else {
+                    alert('Failed to delete points: ' + resp.statusText);
+                }
+            } catch (e) { console.warn('delete error', e); alert('Delete failed'); }
+        });
+    }
+
+    // Fetch device status periodically and populate the status section.
+    async function fetchDeviceStatus() {
+        try {
+            const resp = await fetch('/v1/public/device', { cache: 'no-store' });
+            if (!resp.ok) {
+                // if endpoint not found or returns error, leave placeholders
+                console.warn('fetchDeviceStatus: non-ok response', resp.status);
+                return;
+            }
+            const data = await resp.json();
+            let device;
+             if (Array.isArray(data)) device = data[0] ?? null;
+             else if (Array.isArray(data?.devices)) device = data.devices[0] ?? null;
+             else device = data ?? null;
+
+            const setText = (id, v) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.innerText = (v === null || v === undefined) ? '—' : String(v);
+            };
+            const setBool = (id, v) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (v === null || v === undefined) { el.innerText = '—'; el.classList.remove('status-true'); el.classList.remove('status-false'); return; }
+                const bool = !!v;
+                el.innerText = bool ? 'Yes' : 'No';
+                el.classList.toggle('status-true', bool);
+                el.classList.toggle('status-false', !bool);
+            };
+
+            if (!device) {
+                // no device info available
+                setText('BatteryLevel', '—');
+                setBool('IsGPSOnline', null);
+                setBool('IsInAlarm', null);
+                setBool('IsButtonPressed', null);
+                setBool('IsInCharge', null);
+                const last = document.getElementById('lastFetched'); if (last) last.innerText = new Date().toLocaleString();
+                const statusUpdatedEl = document.getElementById('statusUpdated'); if (statusUpdatedEl) statusUpdatedEl.innerText = '';
+                return;
+            }
+
+            const batteryVal = device.BatteryLevel ?? device.batteryLevel ?? device.battery ?? null;
+            if (batteryVal === null || batteryVal === undefined) setText('BatteryLevel', '—');
+            else setText('BatteryLevel', (typeof batteryVal === 'number') ? `${batteryVal}%` : String(batteryVal));
+
+            setBool('IsGPSOnline', device.IsGPSOnline ?? device.isGPSOnline ?? device.gpsOnline ?? null);
+            setBool('IsInAlarm', device.IsInAlarm ?? device.isInAlarm ?? device.inAlarm ?? null);
+            setBool('IsButtonPressed', device.IsButtonPressed ?? device.isButtonPressed ?? device.buttonPressed ?? null);
+            setBool('IsInCharge', device.IsInCharge ?? device.isInCharge ?? device.inCharge ?? null);
+
+            // UpdatedAt: try to parse and display local time
+            const rawUpdated = device.UpdatedAt ?? device.updatedAt ?? device.UpdatedAtUtc ?? device.updatedAtUtc ?? device.updatedAt;
+            const updatedDate = parseTimestamp(rawUpdated) ?? new Date();
+            const lastFetchedEl = document.getElementById('lastFetched');
+            if (lastFetchedEl) lastFetchedEl.innerText = updatedDate.toLocaleString();
+
+            const statusUpdatedEl = document.getElementById('statusUpdated');
+            if (statusUpdatedEl) statusUpdatedEl.innerText = '';
+        } catch (e) {
+            console.warn('fetchDeviceStatus error', e);
+        }
+    }
+
+    // start polling device status every 2 seconds to keep UI current
+    fetchDeviceStatus();
+    setInterval(fetchDeviceStatus, 2000);
+
 </script>
