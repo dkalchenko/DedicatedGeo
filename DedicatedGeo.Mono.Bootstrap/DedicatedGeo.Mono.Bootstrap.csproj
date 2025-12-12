@@ -4,6 +4,7 @@
     <ItemGroup>
         <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
         <PackageReference Include="HybridModelBinding" Version="0.18.1-alpha.5"/>
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="10.0.1" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.1" />
         <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.1" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.1" />

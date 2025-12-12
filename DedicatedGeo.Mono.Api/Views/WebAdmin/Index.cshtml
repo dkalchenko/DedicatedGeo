@@ -526,23 +526,7 @@
     // Format a Date into a consistent, human-readable local-time string including seconds
     function formatLocal(dt) {
         if (!dt) return '—';
-        try {
-            const pad = n => String(n).padStart(2, '0');
-            const mm = pad(dt.getMonth() + 1);
-            const dd = pad(dt.getDate());
-            const yyyy = dt.getFullYear();
-            let hours = dt.getHours();
-            const ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12;
-            if (hours === 0) hours = 12;
-            const hh = pad(hours);
-            const min = pad(dt.getMinutes());
-            const sec = pad(dt.getSeconds());
-            return `${mm}/${dd}/${yyyy} ${hh}:${min}:${sec} ${ampm}`;
-        } catch (e) {
-            // fallback to locale string if something unexpected occurs
-            return dt.toLocaleString();
-        }
+        return dt.toLocaleString();
     }
 
     // convert datetime-local (local time) or any ISO input to UTC ISO (no milliseconds, ends with Z)
@@ -558,6 +542,7 @@
         } else {
             iso = new Date(localValue).toISOString();
         }
+        return iso.replace(/\.\d{3}Z$/, 'Z');
     }
 
     function setDefaultRange() {
@@ -660,6 +645,7 @@
                 const createdRaw = p.CreatedAt ?? p.createdAt ?? p.timestamp ?? p.time ?? null;
                 const createdDate = parseTimestamp(createdRaw);
                 const createdText = createdDate ? formatLocal(createdDate) : null;
+                console.log(createdRaw, createdDate, formatLocal(createdDate))
                 m.bindPopup(`<div style="min-width:140px"><div><strong>Lat:</strong> ${lat}</div><div><strong>Lon:</strong> ${lon}</div>${createdDate ? `<div style='font-size:12px;color:#9aa4b2'>${formatLocal(createdDate)}</div>` : ''}</div>`);
                 mapMarkers.push(m);
 
@@ -860,8 +846,9 @@
 
             // UpdatedAt: try to parse and display local time
             const rawUpdated = device.UpdatedAt ?? device.updatedAt ?? device.UpdatedAtUtc ?? device.updatedAtUtc ?? device.updatedAt;
-            const updatedDate = parseTimestamp(rawUpdated) ?? new Date();
+            const updatedDate = parseTimestamp(rawUpdated);
             const lastFetchedEl = document.getElementById('lastFetched');
+            console.log(rawUpdated, updatedDate, formatLocal(updatedDate))
             if (lastFetchedEl) lastFetchedEl.innerText = formatLocal(updatedDate);
 
             const statusUpdatedEl = document.getElementById('statusUpdated');

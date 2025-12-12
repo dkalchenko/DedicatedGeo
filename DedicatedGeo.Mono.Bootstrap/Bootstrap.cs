@@ -56,10 +56,14 @@ public static class Bootstrap
                 });
         });
         serviceCollection.AddMvc()
+            .AddNewtonsoftJson(options =>
+            {
+                // reuse your JsonConvert.DefaultSettings if set
+                ConfigureJson(options.SerializerSettings);
+            })
             .AddHybridModelBinder();
 
         ConfigureValidator();
-        ConfigureJson();
 
         return serviceCollection;
     }
@@ -102,16 +106,13 @@ public static class Bootstrap
         };
     }
 
-    private static void ConfigureJson()
+    private static void ConfigureJson(JsonSerializerSettings settings)
     {
-        JsonConvert.DefaultSettings = () => new JsonSerializerSettings
-        {
-            DateFormatString = "yyyy-MM-dd'T'HH:mm:sss'Z'",
-            DateFormatHandling = DateFormatHandling.IsoDateFormat,
-            DateTimeZoneHandling = DateTimeZoneHandling.Utc,
-            Formatting = Formatting.None,
-            ContractResolver = new CamelCasePropertyNamesContractResolver()
-        };
+        settings.DateFormatString = "yyyy-MM-dd'T'HH:mm:sss'Z'";
+        settings.DateFormatHandling = DateFormatHandling.IsoDateFormat;
+        settings.DateTimeZoneHandling = DateTimeZoneHandling.Utc;
+        settings.Formatting = Formatting.None;
+        settings.ContractResolver = new CamelCasePropertyNamesContractResolver();
     }
 
     private static void ConfigureValidator()
