@@ -35,7 +35,8 @@ public class GetLocationPointsAdminRequestHandler: IRequestHandler<GetLocationPo
         var to = request.To.ToUniversalTime();
         var from = request.From.ToUniversalTime();
         var points = await _repository.LocationPoints
-            .Where(x => x.CreatedAt >= from && x.CreatedAt <= to && x.DeviceId == request.DeviceId.ToGuid())
+            .Where(x => x.DeviceId == request.DeviceId.ToGuid() && x.CreatedAt >= from && x.CreatedAt <= to)
+            .OrderByDescending(x => x.CreatedAt)
             .ToListAsync(cancellationToken: cancellationToken);
         
         return new GetLocationPointsAdminResponse

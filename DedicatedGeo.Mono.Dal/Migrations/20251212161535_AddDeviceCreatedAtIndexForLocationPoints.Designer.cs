@@ -3,6 +3,7 @@ using System;
 using DedicatedGeo.Mono.Dal;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DedicatedGeo.Mono.Dal.Migrations
 {
     [DbContext(typeof(DatabaseRepository))]
-    partial class DatabaseRepositoryModelSnapshot : ModelSnapshot
+    [Migration("20251212161535_AddDeviceCreatedAtIndexForLocationPoints")]
+    partial class AddDeviceCreatedAtIndexForLocationPoints
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.1");
