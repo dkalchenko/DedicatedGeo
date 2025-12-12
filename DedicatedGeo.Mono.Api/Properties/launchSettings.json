@@ -14,7 +14,7 @@
       "applicationUrl": "http://localhost:5089",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "IDEALTEX_MYSQL_CONNECTION_STRING": "Data Source=MyDatabase.db",
+        "IDEALTEX_MYSQL_CONNECTION_STRING": "Data Source=/Database/MyDatabase.db",
         "PROM_API_KEY": "test"
       }
     },
