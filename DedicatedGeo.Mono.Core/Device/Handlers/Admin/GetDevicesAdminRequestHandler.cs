@@ -26,6 +26,7 @@ public class GetDevicesAdminRequestHandler: IRequestHandler<GetDevicesAdminReque
             Devices = devices.Select(x => new GetDeviceAdminResponse
             {
                 DeviceId = x.DeviceId,
+                IMEI = x.IMEI,
                 DeviceName = x.Name,
             })
         };

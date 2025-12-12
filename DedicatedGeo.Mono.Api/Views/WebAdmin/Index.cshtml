@@ -330,7 +330,7 @@
             <div class="cds-toggle" tabindex="0" role="button" aria-haspopup="listbox">
                 <div style="display:flex;flex-direction:column;min-width:0;">
                     <div class="label">Select device...</div>
-                    <!-- subtitle removed: Live point summary -->
+                    <div class="sub" style="display:none;">&nbsp;</div>
                 </div>
                 <div class="cds-right"><div class="cds-caret"></div></div>
             </div>
@@ -348,19 +348,20 @@
         const itemsRoot = root.querySelector('.cds-items');
         const search = root.querySelector('.cds-search');
 
-        // build item elements and keep for filtering/keyboard navigation
+        // build item elements and keep for filtering/keyboard navigation (include IMEI)
         const itemNodes = [];
         devices.forEach(d => {
             const id = d.DeviceId ?? d.deviceId ?? d.Id ?? d.id ?? null;
             const name = d.DeviceName ?? d.deviceName ?? d.Name ?? d.name ?? d.DisplayName ?? d.displayName ?? String(id ?? '');
+            const imei = d.IMEI ?? d.Imei ?? d.imei ?? '';
             const it = document.createElement('div');
             it.className = 'cds-item';
             it.tabIndex = -1;
             it.dataset.value = id ?? '';
-            // show only the device name (no ID column)
-            it.innerHTML = `<div class="name">${escapeHtml(name)}</div>`;
+            // show the device name and IMEI (IMEI aligned to the right using .id style)
+            it.innerHTML = `<div class="name">${escapeHtml(name)}</div><div class="id">${escapeHtml(imei)}</div>`;
             itemsRoot.appendChild(it);
-            itemNodes.push({ el: it, name: String(name).toLowerCase(), id: String(id) });
+            itemNodes.push({ el: it, name: String(name).toLowerCase(), id: String(id ?? ''), imei: String(imei).toLowerCase() });
         });
 
         function openList() {
@@ -379,7 +380,7 @@
                 const q = search.value.trim().toLowerCase();
                 let any = false;
                 itemNodes.forEach(it => {
-                    const match = !q || it.name.includes(q) || it.id.includes(q);
+                    const match = !q || it.name.includes(q) || it.id.includes(q) || (it.imei && it.imei.includes(q));
                     it.el.style.display = match ? '' : 'none';
                     if (match) any = true;
                 });
@@ -417,11 +418,16 @@
         function itemClickHandler(el) {
             const id = el.dataset.value;
             const name = el.querySelector('.name')?.innerText ?? id;
+            const imei = el.querySelector('.id')?.innerText ?? '';
             // mark selected
             itemsRoot.querySelectorAll('.cds-item.selected').forEach(s => s.classList.remove('selected'));
             el.classList.add('selected');
-            // update toggle label
+            // update toggle label and subtitle
             const lbl = toggle.querySelector('.label'); if (lbl) lbl.innerText = name;
+            const sub = toggle.querySelector('.sub'); if (sub) {
+                if (imei) { sub.style.display = ''; sub.innerText = imei; }
+                else { sub.style.display = 'none'; sub.innerText = ''; }
+            }
             // remember selected device id and trigger loads
             selectedDeviceId = id || null;
             // close the list
@@ -552,7 +558,6 @@
         } else {
             iso = new Date(localValue).toISOString();
         }
-        return iso.replace(/\.\d{3}Z$/, 'Z');
     }
 
     function setDefaultRange() {
