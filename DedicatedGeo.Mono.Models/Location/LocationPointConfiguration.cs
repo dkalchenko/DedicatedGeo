@@ -10,5 +10,6 @@ public class LocationPointConfiguration : IEntityTypeConfiguration<LocationPoint
         builder.HasKey(e => e.LocationPointId);
         builder.Property(e => e.Point).IsRequired();
         builder.HasIndex(e => e.CreatedAt);
+        builder.HasIndex(e => new { e.DeviceId, e.CreatedAt });
     }
 }
