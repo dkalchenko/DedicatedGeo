@@ -3,6 +3,7 @@
 public class GetDeviceStatusAdminResponse
 {
     public int BatteryLevel { get; set; }
+    public bool IsDeviceOnline { get; set; }
     public bool IsInAlarm { get; set; }
     public bool IsButtonPressed { get; set; }
     public bool IsInCharge { get; set; }

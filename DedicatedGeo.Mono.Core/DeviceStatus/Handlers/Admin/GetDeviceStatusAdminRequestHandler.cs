@@ -1,5 +1,6 @@
 ﻿using DedicatedGeo.Mono.Common;
 using DedicatedGeo.Mono.Common.Extensions;
+using DedicatedGeo.Mono.Core.Extensions;
 using DedicatedGeo.Mono.Dal.Abstractions;
 using DedicatedGeo.Mono.Dtos.Device;
 using DedicatedGeo.Mono.Entities.Device;
@@ -39,7 +40,7 @@ public class GetDeviceStatusAdminRequestHandler: IRequestHandler<GetDeviceStatus
         {
             return new GetDeviceStatusAdminResponse();
         }
-
+        
         return new GetDeviceStatusAdminResponse
         {
             IsGPSOnline = deviceStatus.IsGPSOnline,
@@ -47,6 +48,7 @@ public class GetDeviceStatusAdminRequestHandler: IRequestHandler<GetDeviceStatus
             IsButtonPressed = deviceStatus.IsButtonPressed,
             IsInAlarm = deviceStatus.IsInAlarm,
             IsInCharge = deviceStatus.IsInCharge,
+            IsDeviceOnline = deviceStatus.UpdatedAt.IsWithinLastMinutes(2),
             UpdatedAt = deviceStatus.UpdatedAt,
         };
     }

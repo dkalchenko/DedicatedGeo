@@ -165,10 +165,31 @@
     .point.selected{ border: 1px solid rgba(90,179,255,0.9); background: linear-gradient(180deg, rgba(90,179,255,0.06), rgba(90,179,255,0.02)); }
 
     .status-grid{ display:grid; grid-template-columns: repeat(2,1fr); gap:8px; margin-top:6px; }
-    .status-item{ padding:10px; border-radius:8px; background:linear-gradient(180deg, rgba(255,255,255,0.012), rgba(0,0,0,0.04)); display:flex; flex-direction:column; gap:6px; font-size:13px; }
+    .status-item{ padding:10px; border-radius:8px; background:linear-gradient(180deg, rgba(255,255,255,0.012), rgba(0,0,0,0.04)); display:flex; flex-direction:column; gap:6px; font-size:13px; transition: background .18s ease, border-color .18s ease, box-shadow .18s ease; }
     .status-item .val{ font-weight:700; color:#fff; }
     .status-true{ color:#22c55e; font-weight:700; }
     .status-false{ color:#9aa4b2; font-weight:700; }
+
+    /* success card (green) */
+    .status-item.ok{
+        border-color: rgba(34, 197, 94);
+        background: linear-gradient(90deg, rgba(34,197,94,0.3), rgba(34,197,94,0.01));
+        box-shadow: 0 8px 20px rgba(34,197,94,0.03);
+    }
+    /* bad card (red) */
+    .status-item.bad{
+        border-color: rgba(239, 68, 68);
+        background: linear-gradient(90deg, rgba(239,68,68,0.3), rgba(239,68,68,0.01));
+        box-shadow: 0 8px 20px rgba(239,68,68,0.03);
+    }
+    /* ensure value text contrasts on colored cards */
+    .status-item.ok .val { color: #e6fdf0; }
+    .status-item.bad .val { color: #fff2f2; }
+
+    /* device status badge in the Status header */
+    .device-status { font-weight:700; margin-left:8px; }
+    .device-status.online { color: #22c55e; }
+    .device-status.offline { color: #ef4444; }
 
     .actions{ display:flex; gap:8px; align-items:center; }
     .btn{ padding:8px 12px; border-radius:9px; border:none; cursor:pointer; font-weight:600; }
@@ -231,7 +252,7 @@
 
     <!-- Status section -->
     <div class="section" id="statusSection">
-        <h4>Status <span id="statusUpdated" class="count"></span></h4>
+        <h4>Status <span id="deviceStatus"></span></h4>
         <div class="status-grid" id="statusGrid">
             <div class="status-item">
                 <div class="label">Battery Level</div>
@@ -248,6 +269,10 @@
             <div class="status-item">
                 <div class="label">Button Pressed</div>
                 <div id="IsButtonPressed" class="val status-false">—</div>
+            </div>
+            <div class="status-item">
+                <div class="label">Is In Charge</div>
+                <div id="IsInCharge" class="val status-false">—</div>
             </div>
             <div class="status-item" style="grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center;">
                 <div style="font-size:13px;color:#9aa4b2">Updated At</div>
@@ -816,11 +841,84 @@
             const setBool = (id, v) => {
                 const el = document.getElementById(id);
                 if (!el) return;
-                if (v === null || v === undefined) { el.innerText = '—'; el.classList.remove('status-true'); el.classList.remove('status-false'); return; }
+                if (v === null || v === undefined) {
+                    el.innerText = '—';
+                    el.classList.remove('status-true');
+                    el.classList.remove('status-false');
+                    const parentRem = el.closest('.status-item');
+                    if (parentRem) { parentRem.classList.remove('ok'); parentRem.classList.remove('bad'); }
+                    return;
+                }
                 const bool = !!v;
                 el.innerText = bool ? 'Yes' : 'No';
                 el.classList.toggle('status-true', bool);
                 el.classList.toggle('status-false', !bool);
+                const parent = el.closest('.status-item');
+                if (parent) {
+                    parent.classList.toggle('ok', bool);
+                    parent.classList.toggle('bad', !bool);
+                }
+            };
+
+            const setNegativeBool = (id, v) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (v === null || v === undefined) {
+                    el.innerText = '—';
+                    el.classList.remove('status-true');
+                    el.classList.remove('status-false');
+                    const parentRem = el.closest('.status-item');
+                    if (parentRem) { parentRem.classList.remove('ok'); parentRem.classList.remove('bad'); }
+                    return;
+                }
+                const bool = !!v;
+                el.innerText = bool ? 'Yes' : 'No';
+                el.classList.toggle('status-true', !bool);
+                el.classList.toggle('status-false', bool);
+                const parent = el.closest('.status-item');
+                if (parent) {
+                    parent.classList.toggle('ok', !bool);
+                    parent.classList.toggle('bad', bool);
+                }
+            };
+
+            const setBoolWithoutColor = (id, v) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (v === null || v === undefined) {
+                    el.innerText = '—';
+                    el.classList.remove('status-true');
+                    el.classList.remove('status-false');
+                    const parentRem = el.closest('.status-item');
+                    if (parentRem) { parentRem.classList.remove('ok'); parentRem.classList.remove('bad'); }
+                    return;
+                }
+                const bool = !!v;
+                el.innerText = bool ? 'Yes' : 'No';
+            };
+
+            // Helper to show ONLINE/OFFLINE in the status header based on IsDeviceOnline
+            const setDeviceOnlineBadge = (raw) => {
+                const el = document.getElementById('deviceStatus');
+                if (!el) return;
+                // normalize possible property shapes into a nullable boolean
+                let v = raw;
+                if (v === undefined) v = null;
+                // clear classes
+                el.classList.remove('device-status', 'online', 'offline');
+                el.classList.add('device-status');
+                if (v === null || v === undefined) {
+                    el.innerText = '—';
+                    return;
+                }
+                const isOnline = !!v;
+                if (isOnline) {
+                    el.innerText = 'ONLINE';
+                    el.classList.add('online');
+                } else {
+                    el.innerText = 'OFFLINE';
+                    el.classList.add('offline');
+                }
             };
 
             if (!device) {
@@ -830,6 +928,8 @@
                 setBool('IsInAlarm', null);
                 setBool('IsButtonPressed', null);
                 setBool('IsInCharge', null);
+                // clear device online badge
+                setDeviceOnlineBadge(null);
                 const last = document.getElementById('lastFetched'); if (last) last.innerText = formatLocal(new Date());
                 const statusUpdatedEl = document.getElementById('statusUpdated'); if (statusUpdatedEl) statusUpdatedEl.innerText = '';
                 return;
@@ -840,9 +940,13 @@
             else setText('BatteryLevel', (typeof batteryVal === 'number') ? `${batteryVal}%` : String(batteryVal));
 
             setBool('IsGPSOnline', device.IsGPSOnline ?? device.isGPSOnline ?? device.gpsOnline ?? null);
-            setBool('IsInAlarm', device.IsInAlarm ?? device.isInAlarm ?? device.inAlarm ?? null);
-            setBool('IsButtonPressed', device.IsButtonPressed ?? device.isButtonPressed ?? device.buttonPressed ?? null);
-            setBool('IsInCharge', device.IsInCharge ?? device.isInCharge ?? device.inCharge ?? null);
+            setNegativeBool('IsInAlarm', device.IsInAlarm ?? device.isInAlarm ?? device.inAlarm ?? null);
+            setBoolWithoutColor('IsButtonPressed', device.IsButtonPressed ?? device.isButtonPressed ?? device.buttonPressed ?? null);
+            setBoolWithoutColor('IsInCharge', device.IsInCharge ?? device.isInCharge ?? device.inCharge ?? null);
+
+            // Determine device online state from several possible property names returned by server
+            const rawOnline = device.IsDeviceOnline ?? device.isDeviceOnline ?? device.isOnline ?? device.IsOnline ?? device.Online ?? device.online ?? null;
+            setDeviceOnlineBadge(rawOnline);
 
             // UpdatedAt: try to parse and display local time
             const rawUpdated = device.UpdatedAt ?? device.updatedAt ?? device.UpdatedAtUtc ?? device.updatedAtUtc ?? device.updatedAt;
@@ -851,8 +955,7 @@
             console.log(rawUpdated, updatedDate, formatLocal(updatedDate))
             if (lastFetchedEl) lastFetchedEl.innerText = formatLocal(updatedDate);
 
-            const statusUpdatedEl = document.getElementById('statusUpdated');
-            if (statusUpdatedEl) statusUpdatedEl.innerText = '';
+            const statusUpdatedEl2 = document.getElementById('statusUpdated'); if (statusUpdatedEl2) statusUpdatedEl2.innerText = '';
         } catch (e) {
             console.warn('fetchDeviceStatus error', e);
         }
