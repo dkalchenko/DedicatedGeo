@@ -7,6 +7,6 @@ public class PutDeviceStatusS2DRequestValidator: AbstractValidator<PutDeviceStat
 {
     public PutDeviceStatusS2DRequestValidator()
     {
-        RuleFor(request => request.DeviceId).NotNull().NotEmpty();
+        RuleFor(request => request.DeviceId).NotNull().NotEmpty().MaximumLength(16);
     }
 }

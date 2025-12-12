@@ -7,7 +7,7 @@ public class PostLocationPointsS2DRequestValidator: AbstractValidator<PostLocati
 {
     public PostLocationPointsS2DRequestValidator()
     {
-        RuleFor(x => x.DeviceId).NotNull().NotEmpty();
+        RuleFor(x => x.DeviceId).NotNull().NotEmpty().MaximumLength(16);
         RuleFor(x => x.LocationPoints).NotNull().NotEmpty();
         RuleForEach(x => x.LocationPoints)
             .ChildRules(locationPoint =>
