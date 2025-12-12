@@ -252,8 +252,13 @@
 
     <!-- Status section -->
     <div class="section" id="statusSection">
-        <h4>Status <span id="deviceStatus"></span></h4>
+        <h4>Status</h4>
         <div class="status-grid" id="statusGrid">
+
+            <div class="status-item">
+                <div class="label">Online</div>
+                <div id="IsOnline" class="val">—</div>
+            </div>
             <div class="status-item">
                 <div class="label">Battery Level</div>
                 <div id="BatteryLevel" class="val">—</div>
@@ -263,12 +268,12 @@
                 <div id="IsGPSOnline" class="val status-false">—</div>
             </div>
             <div class="status-item">
-                <div class="label">In Alarm</div>
-                <div id="IsInAlarm" class="val status-false">—</div>
-            </div>
-            <div class="status-item">
                 <div class="label">Button Pressed</div>
                 <div id="IsButtonPressed" class="val status-false">—</div>
+            </div>
+            <div class="status-item">
+                <div class="label">Alarm</div>
+                <div id="IsInAlarm" class="val status-false">—</div>
             </div>
             <div class="status-item">
                 <div class="label">Is In Charge</div>
@@ -897,30 +902,6 @@
                 el.innerText = bool ? 'Yes' : 'No';
             };
 
-            // Helper to show ONLINE/OFFLINE in the status header based on IsDeviceOnline
-            const setDeviceOnlineBadge = (raw) => {
-                const el = document.getElementById('deviceStatus');
-                if (!el) return;
-                // normalize possible property shapes into a nullable boolean
-                let v = raw;
-                if (v === undefined) v = null;
-                // clear classes
-                el.classList.remove('device-status', 'online', 'offline');
-                el.classList.add('device-status');
-                if (v === null || v === undefined) {
-                    el.innerText = '—';
-                    return;
-                }
-                const isOnline = !!v;
-                if (isOnline) {
-                    el.innerText = 'ONLINE';
-                    el.classList.add('online');
-                } else {
-                    el.innerText = 'OFFLINE';
-                    el.classList.add('offline');
-                }
-            };
-
             if (!device) {
                 // no device info available
                 setText('BatteryLevel', '—');
@@ -928,8 +909,8 @@
                 setBool('IsInAlarm', null);
                 setBool('IsButtonPressed', null);
                 setBool('IsInCharge', null);
-                // clear device online badge
-                setDeviceOnlineBadge(null);
+                setBool('IsOnline', null);
+                
                 const last = document.getElementById('lastFetched'); if (last) last.innerText = formatLocal(new Date());
                 const statusUpdatedEl = document.getElementById('statusUpdated'); if (statusUpdatedEl) statusUpdatedEl.innerText = '';
                 return;
@@ -943,10 +924,10 @@
             setNegativeBool('IsInAlarm', device.IsInAlarm ?? device.isInAlarm ?? device.inAlarm ?? null);
             setBoolWithoutColor('IsButtonPressed', device.IsButtonPressed ?? device.isButtonPressed ?? device.buttonPressed ?? null);
             setBoolWithoutColor('IsInCharge', device.IsInCharge ?? device.isInCharge ?? device.inCharge ?? null);
-
-            // Determine device online state from several possible property names returned by server
             const rawOnline = device.IsDeviceOnline ?? device.isDeviceOnline ?? device.isOnline ?? device.IsOnline ?? device.Online ?? device.online ?? null;
-            setDeviceOnlineBadge(rawOnline);
+            setBool('IsOnline', rawOnline);
+
+
 
             // UpdatedAt: try to parse and display local time
             const rawUpdated = device.UpdatedAt ?? device.updatedAt ?? device.UpdatedAtUtc ?? device.updatedAtUtc ?? device.updatedAt;
