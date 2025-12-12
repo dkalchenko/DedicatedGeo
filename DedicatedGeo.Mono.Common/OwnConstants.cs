@@ -6,7 +6,28 @@ namespace DedicatedGeo.Mono.Common;
 public static class OwnConstants
 {
 
-    public const string DeviceId = "797f309e-b0b7-43a1-9c17-5784d01052e6";
+    public const int UpdateDeviceStatusBackgroundDelayInMillisecond = 2000;
+    public const int DeviceIsInactivityStatusAfterInSecond = 2;
+    
+    public static class DeviceStatusNames
+    {
+        public const string BatteryLevel = "BatteryLevel";
+        public const string IsInAlarm = "IsInAlarm";
+        public const string IsButtonPressed = "IsButtonPressed";
+        public const string IsInCharge = "IsInCharge";
+        public const string IsGPSOnline = "IsGPSOnline";
+        public const string IsDeviceOnline = "IsDeviceOnline";
+        
+        public static readonly IEnumerable<string> AllNames =
+        [
+            BatteryLevel,
+            IsInAlarm,
+            IsButtonPressed,
+            IsInCharge,
+            IsGPSOnline,
+            IsDeviceOnline
+        ];
+    }
     
     public static class EnvironmentKeys
     {

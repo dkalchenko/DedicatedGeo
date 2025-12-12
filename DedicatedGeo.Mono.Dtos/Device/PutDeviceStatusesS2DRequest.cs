@@ -2,7 +2,7 @@
 
 namespace DedicatedGeo.Mono.Dtos.Device;
 
-public class PutDeviceStatusS2DRequest: IRequest
+public class PutDeviceStatusesS2DRequest: IRequest
 {
     public string DeviceId { get; set; }
     public int BatteryLevel { get; set; }

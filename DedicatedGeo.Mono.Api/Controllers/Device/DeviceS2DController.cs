@@ -16,8 +16,8 @@ public class DeviceS2DController: Controller
         _sender = sender.ThrowIfNull();
     }
     
-    [HttpPut("{deviceId}/status")]
-    public async Task<IActionResult> PutStatus([FromHybrid] PutDeviceStatusS2DRequest request)
+    [HttpPut("{deviceId}/statuses")]
+    public async Task<IActionResult> PutStatus([FromHybrid] PutDeviceStatusesS2DRequest request)
     {
         await _sender.Send(request);
         return Ok();

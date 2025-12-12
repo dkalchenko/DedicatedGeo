@@ -19,4 +19,9 @@
         <ProjectReference Include="..\DedicatedGeo.Mono.Entities\DedicatedGeo.Mono.Entities.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Remove="Common\CursorTokenService.cs" />
+      <Compile Remove="DeviceStatus\Handlers\S2D\PostDeviceStatusS2DRequestHandler.cs" />
+    </ItemGroup>
+
 </Project>

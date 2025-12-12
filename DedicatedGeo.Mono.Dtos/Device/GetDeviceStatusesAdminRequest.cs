@@ -2,7 +2,7 @@
 
 namespace DedicatedGeo.Mono.Dtos.Device;
 
-public class GetDeviceStatusAdminRequest: IRequest<GetDeviceStatusAdminResponse>
+public class GetDeviceStatusesAdminRequest: IRequest<GetDeviceStatusesAdminResponse>
 {
     public string DeviceId { get; set; }
 }

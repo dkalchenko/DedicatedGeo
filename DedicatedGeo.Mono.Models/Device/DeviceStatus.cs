@@ -9,5 +9,6 @@ public class DeviceStatus
     public bool IsButtonPressed { get; set; }
     public bool IsInCharge { get; set; }
     public bool IsGPSOnline { get; set; }
+    public bool IsDeviceOnline { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

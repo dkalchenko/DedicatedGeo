@@ -4,7 +4,10 @@ using FluentValidation;
 using DedicatedGeo.Mono.Common;
 using DedicatedGeo.Mono.Common.Extensions;
 using DedicatedGeo.Mono.Core;
+using DedicatedGeo.Mono.Core.Abstractions.Common;
 using DedicatedGeo.Mono.Core.Behaviors;
+using DedicatedGeo.Mono.Core.Common;
+using DedicatedGeo.Mono.Core.DeviceStatus.Services.BackgroundServices;
 using DedicatedGeo.Mono.Dal;
 using DedicatedGeo.Mono.Dal.Abstractions;
 using MediatR;
@@ -29,6 +32,9 @@ public static class Bootstrap
     {
 
         serviceCollection.AddMemoryCache();
+
+        serviceCollection.AddScoped<IDelayerService, DelayerService>();
+        serviceCollection.AddHostedService<UpdateDevicesStatusBackground>();
         
         serviceCollection.AddDbContext<IDatabaseRepository, DatabaseRepository>(
             GetDbContextOptionsAction());

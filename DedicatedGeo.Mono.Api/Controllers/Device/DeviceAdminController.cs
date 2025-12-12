@@ -22,8 +22,14 @@ public class DeviceAdminController: Controller
         return Ok(await _sender.Send(request));
     }
     
-    [HttpGet("{deviceId}/status")]
-    public async Task<IActionResult> GetStatus([FromHybrid] GetDeviceStatusAdminRequest request)
+    [HttpGet("{deviceId}/statuses")]
+    public async Task<IActionResult> GetStatuses([FromHybrid] GetDeviceStatusesAdminRequest request)
+    {
+        return Ok(await _sender.Send(request));
+    }
+    
+    [HttpGet("{deviceId}/statuses/{statusName}/history")]
+    public async Task<IActionResult> GetStatusHistory([FromHybrid] GetDeviceStatusHistoryAdminRequest request)
     {
         return Ok(await _sender.Send(request));
     }

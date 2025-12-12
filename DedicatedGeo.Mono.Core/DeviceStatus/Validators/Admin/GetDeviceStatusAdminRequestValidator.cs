@@ -3,7 +3,7 @@ using FluentValidation;
 
 namespace DedicatedGeo.Mono.Core.DeviceStatus.Validators;
 
-public class GetDeviceStatusAdminRequestValidator: AbstractValidator<GetDeviceStatusAdminRequest>
+public class GetDeviceStatusAdminRequestValidator: AbstractValidator<GetDeviceStatusesAdminRequest>
 {
     public GetDeviceStatusAdminRequestValidator()
     {

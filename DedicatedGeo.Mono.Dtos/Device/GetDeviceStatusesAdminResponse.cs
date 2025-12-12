@@ -1,6 +1,6 @@
 ﻿namespace DedicatedGeo.Mono.Dtos.Device;
 
-public class GetDeviceStatusAdminResponse
+public class GetDeviceStatusesAdminResponse
 {
     public int BatteryLevel { get; set; }
     public bool IsDeviceOnline { get; set; }

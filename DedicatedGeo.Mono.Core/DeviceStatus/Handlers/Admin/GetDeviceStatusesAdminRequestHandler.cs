@@ -9,19 +9,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DedicatedGeo.Mono.Core.Device;
 
-public class GetDeviceStatusAdminRequestHandler: IRequestHandler<GetDeviceStatusAdminRequest, GetDeviceStatusAdminResponse>
+public class GetDeviceStatusesAdminRequestHandler: IRequestHandler<GetDeviceStatusesAdminRequest, GetDeviceStatusesAdminResponse>
 {
     
     private readonly IDatabaseRepository _repository;
     private readonly ISender _sender;
 
-    public GetDeviceStatusAdminRequestHandler(IDatabaseRepository repository, ISender sender)
+    public GetDeviceStatusesAdminRequestHandler(IDatabaseRepository repository, ISender sender)
     {
         _repository = repository.ThrowIfNull();
         _sender = sender.ThrowIfNull();
     }
     
-    public async Task<GetDeviceStatusAdminResponse> Handle(GetDeviceStatusAdminRequest request, CancellationToken cancellationToken)
+    public async Task<GetDeviceStatusesAdminResponse> Handle(GetDeviceStatusesAdminRequest request, CancellationToken cancellationToken)
     {
         
         var device = await _sender.Send(new GetDeviceInternalRequest
@@ -34,21 +34,25 @@ public class GetDeviceStatusAdminRequestHandler: IRequestHandler<GetDeviceStatus
             throw OwnConstants.ErrorTemplates.ResourceNotFound.FormatMessage("device").GetException();
         }
         
-        var deviceStatus = await _repository.DeviceStatuses.FirstOrDefaultAsync(x => x.DeviceId == request.DeviceId.ToGuid(), cancellationToken: cancellationToken);
+        var deviceStatus = await _repository.DeviceStatuses
+            .AsQueryable()
+            .Where(x => x.DeviceId == request.DeviceId.ToGuid())
+            .OrderByDescending(x => x.UpdatedAt)
+            .FirstOrDefaultAsync(cancellationToken: cancellationToken);
 
         if (deviceStatus is null)
         {
-            return new GetDeviceStatusAdminResponse();
+            return new GetDeviceStatusesAdminResponse();
         }
         
-        return new GetDeviceStatusAdminResponse
+        return new GetDeviceStatusesAdminResponse
         {
             IsGPSOnline = deviceStatus.IsGPSOnline,
             BatteryLevel = deviceStatus.BatteryLevel,
             IsButtonPressed = deviceStatus.IsButtonPressed,
             IsInAlarm = deviceStatus.IsInAlarm,
             IsInCharge = deviceStatus.IsInCharge,
-            IsDeviceOnline = deviceStatus.UpdatedAt.IsWithinLastMinutes(2),
+            IsDeviceOnline = deviceStatus.IsDeviceOnline,
             UpdatedAt = deviceStatus.UpdatedAt,
         };
     }

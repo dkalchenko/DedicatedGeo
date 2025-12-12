@@ -10,5 +10,6 @@ public interface IDatabaseRepository
     DbSet<LocationPoint> LocationPoints { get; }
     DbSet<DeviceStatus> DeviceStatuses { get; }
     DbSet<Device> Devices { get; }
+    DbSet<DeviceStatusHistory> DeviceStatusHistories { get; }
     Task SaveChangesAsync(CancellationToken? cancellationToken);
 }
