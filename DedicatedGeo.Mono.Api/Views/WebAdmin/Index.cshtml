@@ -585,6 +585,8 @@
             // when a device is selected, reset initial-fit so the map will refocus on the newly-loaded points,
             // then load points and status immediately
             try { didInitialFit = false; } catch (e) {}
+            // Ask the next load to focus on the newest point instead of fitting the entire path
+            try { focusLastOnNextLoad = true; } catch (e) {}
             try { loadPoints(); } catch (e) { console.warn('loadPoints on select failed', e); }
             try { fetchDeviceStatus(); } catch (e) { console.warn('fetchDeviceStatus on select failed', e); }
         }
@@ -634,6 +636,8 @@
     let selectedMarkerIndex = null;
     // currently selected device id from the device selector (null = none)
     let selectedDeviceId = null;
+    // When true, after the next points load we will center/zoom to the newest point instead of fitting the full path
+    let focusLastOnNextLoad = false;
 
     // helpers
     const toNum = v => { if (v === undefined || v === null) return null; const n = Number(String(v).replace(',', '.')); return Number.isFinite(n) ? n : null; };
@@ -734,53 +738,54 @@
 
     async function loadPoints() {
         try {
-            // Ensure a device is selected before requesting points
+            // If no device selected - clear UI
             if (!selectedDeviceId) {
-                // clear map/UI state when no device is selected
                 clearMap();
                 const pointsContainer = document.getElementById('pointsContainer'); if (pointsContainer) pointsContainer.innerHTML = '';
                 const pointsCountEl = document.getElementById('pointsCount'); if (pointsCountEl) pointsCountEl.innerText = '0';
-                // disable delete button when no device selected
-                try { const db = document.getElementById('deleteAll'); if (db) db.disabled = true; } catch(e) {}
+                try { const db = document.getElementById('deleteAll'); if (db) db.disabled = true; } catch (e) {}
                 return;
             }
-             const fromEl = document.getElementById('fromPicker');
-             const toEl = document.getElementById('toPicker');
-             const now = new Date();
-             if (fromEl && toEl && fromEl.dataset.auto === 'true' && toEl.dataset.auto === 'true') {
-                 const oneHourAgo = new Date(now.getTime() - 60*60*1000);
-                 fromEl.value = toDateTimeLocal(oneHourAgo);
-                 toEl.value = toDateTimeLocal(now);
-             } else if (toEl && toEl.dataset.auto === 'true') {
-                 toEl.value = toDateTimeLocal(now);
-             }
+
+            // Ensure default picker range when using auto mode
+            const fromEl = document.getElementById('fromPicker');
+            const toEl = document.getElementById('toPicker');
+            const now = new Date();
+            if (fromEl && toEl && fromEl.dataset.auto === 'true' && toEl.dataset.auto === 'true') {
+                const oneHourAgo = new Date(now.getTime() - 60*60*1000);
+                fromEl.value = toDateTimeLocal(oneHourAgo);
+                toEl.value = toDateTimeLocal(now);
+            } else if (toEl && toEl.dataset.auto === 'true') {
+                toEl.value = toDateTimeLocal(now);
+            }
 
             const url = buildUrl();
-            if (!url) return; // safety
+            if (!url) return;
+
             const resp = await fetch(url, { cache: 'no-store' });
-             if (!resp.ok) return;
-             const data = await resp.json();
-             const pts = Array.isArray(data) ? data : (Array.isArray(data?.points) ? data.points : []);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            const pts = Array.isArray(data) ? data : (Array.isArray(data?.points) ? data.points : []);
 
-             const pointsContainer = document.getElementById('pointsContainer');
+            const pointsContainer = document.getElementById('pointsContainer');
 
-             if (!pts.length) {
-                 clearMap();
-                 if (pointsContainer) pointsContainer.innerHTML = '';
-                 const pointsCountEl = document.getElementById('pointsCount');
-                 if (pointsCountEl) pointsCountEl.innerText = '0';
-                 return;
-             }
+            if (!pts || pts.length === 0) {
+                clearMap();
+                if (pointsContainer) pointsContainer.innerHTML = '';
+                const pointsCountEl = document.getElementById('pointsCount'); if (pointsCountEl) pointsCountEl.innerText = '0';
+                return;
+            }
 
-             clearMap();
+            // Clear previous markers/path
+            clearMap();
 
-             const latlngs = [];
-             if (pointsContainer) pointsContainer.innerHTML = '';
+            const latlngs = [];
+            if (pointsContainer) pointsContainer.innerHTML = '';
 
-            // Create markers in the order returned by the API and keep a mapping
-            const markerMapping = []; // { p, idx, lat, lon, createdDate }
+            // Build markers and mapping
+            const markerMapping = [];
             let markerIndex = 0;
-            pts.forEach((p) => {
+            pts.forEach(p => {
                 const lat = toNum(p.Latitude ?? p.latitude ?? p.lat ?? p.latDeg ?? p.lat_deg);
                 const lon = toNum(p.Longitude ?? p.longitude ?? p.lon ?? p.lonDeg ?? p.lon_deg);
                 if (lat == null || lon == null) return;
@@ -792,23 +797,20 @@
                 const createdRaw = p.CreatedAt ?? p.createdAt ?? p.timestamp ?? p.time ?? null;
                 const createdDate = parseTimestamp(createdRaw);
                 const createdText = createdDate ? formatLocal(createdDate) : null;
-                console.log(createdRaw, createdDate, formatLocal(createdDate))
                 m.bindPopup(`<div style="min-width:140px"><div><strong>Lat:</strong> ${lat}</div><div><strong>Lon:</strong> ${lon}</div>${createdDate ? `<div style='font-size:12px;color:#9aa4b2'>${formatLocal(createdDate)}</div>` : ''}</div>`);
                 mapMarkers.push(m);
-
                 m.on('click', () => { selectMarker(myIdx, true); });
 
                 markerMapping.push({ p, idx: myIdx, lat, lon, createdDate, createdText });
             });
 
-            // Sort mapping for sidebar list by CreatedAt DESC (newest first)
-            const mappingForList = markerMapping.slice().sort((a, b) => {
+            // Sidebar list sorted newest-first
+            const mappingForList = markerMapping.slice().sort((a,b) => {
                 const ta = a.createdDate ? a.createdDate.getTime() : 0;
                 const tb = b.createdDate ? b.createdDate.getTime() : 0;
                 return tb - ta;
             });
 
-            // Render sorted list in sidebar referencing correct marker indices
             if (pointsContainer) {
                 pointsContainer.innerHTML = '';
                 mappingForList.forEach(item => {
@@ -822,26 +824,49 @@
                 });
             }
 
-            const pointsCountEl = document.getElementById('pointsCount');
-            if (pointsCountEl) pointsCountEl.innerText = String(mapMarkers.length);
-         
-             if (latlngs.length) {
-                 mapPath = L.polyline(latlngs, { color: 'blue' }).addTo(map);
-                 if (!didInitialFit) {
-                     try {
-                         if (latlngs.length === 1) {
-                             map.setView(latlngs[0], 15);
-                         } else {
-                             map.fitBounds(latlngs);
-                         }
-                     } catch (e) { }
-                     didInitialFit = true;
-                 }
-             }
-         } catch (e) {
-             console.error('loadPoints error', e);
-         }
-     }
+            const pointsCountEl = document.getElementById('pointsCount'); if (pointsCountEl) pointsCountEl.innerText = String(mapMarkers.length);
+
+            // Draw path and do initial view logic
+            if (latlngs.length) {
+                mapPath = L.polyline(latlngs, { color: 'blue' }).addTo(map);
+
+                if (!didInitialFit) {
+                    try {
+                        if (focusLastOnNextLoad) {
+                            // center on newest point (by createdDate) if available
+                            let newest = null;
+                            for (let i = 0; i < markerMapping.length; i++) {
+                                const it = markerMapping[i];
+                                if (!newest) newest = it;
+                                else {
+                                    const ta = it.createdDate ? it.createdDate.getTime() : -Infinity;
+                                    const tb = newest.createdDate ? newest.createdDate.getTime() : -Infinity;
+                                    if (ta > tb) newest = it;
+                                }
+                            }
+                            if (newest && typeof newest.lat === 'number' && typeof newest.lon === 'number') {
+                                map.setView([newest.lat, newest.lon], 18);
+                                try { selectMarker(newest.idx, false); } catch (e) {}
+                            } else if (latlngs.length === 1) {
+                                map.setView(latlngs[0], 15);
+                            } else {
+                                map.fitBounds(latlngs);
+                            }
+                            focusLastOnNextLoad = false;
+                        } else {
+                            if (latlngs.length === 1) map.setView(latlngs[0], 15);
+                            else map.fitBounds(latlngs);
+                        }
+                    } catch (e) {
+                        // ignore fit errors
+                    }
+                    didInitialFit = true;
+                }
+            }
+        } catch (e) {
+            console.error('loadPoints error', e);
+        }
+    }
 
     function selectMarker(idx, pan = false) {
         if (!Array.isArray(mapMarkers) || idx == null || idx < 0 || idx >= mapMarkers.length) return;
