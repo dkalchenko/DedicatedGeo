@@ -9,6 +9,7 @@ public class DeviceStatusConfiguration : IEntityTypeConfiguration<DeviceStatus>
     {
         builder.HasKey(e => e.DeviceStatusId);
         builder.HasIndex(e => e.DeviceId);
+        builder.HasIndex(e => new { e.IsDeviceOnline, e.UpdatedAt });
         builder.Property(e => e.BatteryLevel).IsRequired();
         builder.Property(e => e.IsInAlarm).IsRequired();
         builder.Property(e => e.IsButtonPressed).IsRequired();

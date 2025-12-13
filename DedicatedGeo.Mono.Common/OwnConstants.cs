@@ -6,7 +6,7 @@ namespace DedicatedGeo.Mono.Common;
 public static class OwnConstants
 {
 
-    public const int UpdateDeviceStatusBackgroundDelayInMillisecond = 120000;
+    public const int UpdateDeviceStatusBackgroundDelayInMillisecond = 20000;
     public const int DeviceIsInactivityStatusAfterInMinutes = 2;
     
     public static class DeviceStatusNames

@@ -30,6 +30,11 @@ public class DatabaseRepository : DbContext, IDatabaseRepository
         await base.SaveChangesAsync(cancellationToken.GetValueOrDefault());
     }
 
+    public void RefreshTracker()
+    {
+        ChangeTracker.Clear();
+    }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.UseExceptionProcessor();

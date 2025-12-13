@@ -1,6 +1,5 @@
 ﻿using DedicatedGeo.Mono.Common;
 using DedicatedGeo.Mono.Core.Abstractions.Common;
-using DedicatedGeo.Mono.Core.Extensions;
 using DedicatedGeo.Mono.Dal.Abstractions;
 using DedicatedGeo.Mono.Entities.DeviceStatus;
 using MediatR;
@@ -40,61 +39,56 @@ public class UpdateDevicesStatusBackground: BackgroundService
     private async Task DoAsync(CancellationToken stoppingToken)
     {
         await using var scope = _services.CreateAsyncScope();
-        var repository =
-            scope.ServiceProvider
-                .GetRequiredService<IDatabaseRepository>();
 
         var delayer = scope.ServiceProvider.GetRequiredService<IDelayerService>();
         var publisher = scope.ServiceProvider.GetRequiredService<IPublisher>();
 
+        var repository =
+            scope.ServiceProvider
+                .GetRequiredService<IDatabaseRepository>();
+        
         while (true)
         {
             try
             {
-                var devices = await repository.Devices.ToListAsync(cancellationToken: stoppingToken);
+                var cutoff = DateTime.UtcNow.AddMinutes(-2);
 
-                foreach (var devicesChunk in devices.Chunk(50))
+                var devicesStatus = await repository.DeviceStatuses
+                    .Where(x => x.IsDeviceOnline && x.UpdatedAt < cutoff)
+                    .OrderByDescending(x => x.UpdatedAt)
+                    .ToListAsync(cancellationToken: stoppingToken);
+
+                var notificationItems = new List<ChangedDeviceStatusItem>();
+
+                foreach (var deviceStatus in devicesStatus)
                 {
+                     deviceStatus.IsDeviceOnline = false;
+                     deviceStatus.UpdatedAt = DateTime.UtcNow;
 
-                    var changedStatuses = new List<Models.Device.DeviceStatus>();
-
-                    foreach (var device in devicesChunk)
-                    {
-                        var devicesStatus = await repository.DeviceStatuses
-                            .AsQueryable()
-                            .Where(x => x.DeviceId == device.DeviceId)
-                            .OrderByDescending(x => x.UpdatedAt)
-                            .FirstOrDefaultAsync(cancellationToken: stoppingToken);
-
-                        if (devicesStatus is null)
-                        {
-                            continue;
-                        }
-
-                        if (devicesStatus.IsDeviceOnline &&
-                            !devicesStatus.UpdatedAt.IsWithinLastMinutes(OwnConstants
-                                .DeviceIsInactivityStatusAfterInMinutes))
-                        {
-                            devicesStatus.IsDeviceOnline = false;
-                            changedStatuses.Add(devicesStatus);
-                        }
-                    }
-
-                    await repository.SaveChangesAsync(cancellationToken: stoppingToken);
-                    var notificationItems = changedStatuses.Select(x => new ChangedDeviceStatusItem
-                    {
-                        NewValue = x.IsDeviceOnline.ToString(),
-                        OldValue = true.ToString(),
-                        StatusName = OwnConstants.DeviceStatusNames.IsDeviceOnline,
-                        DeviceId = x.DeviceId,
-                        ChangedAt = x.UpdatedAt
-                    });
-
-                    await publisher.Publish(new DeviceStatusesChangedNotification
-                    {
-                        ChangedDeviceStatuses = notificationItems,
-                    }, stoppingToken);
+                     notificationItems.Add(new ChangedDeviceStatusItem
+                     {
+                         NewValue = deviceStatus.IsDeviceOnline.ToString(),
+                         OldValue = true.ToString(),
+                         StatusName = OwnConstants.DeviceStatusNames.IsDeviceOnline,
+                         DeviceId = deviceStatus.DeviceId,
+                         ChangedAt = deviceStatus.UpdatedAt
+                     });
                 }
+
+                if (notificationItems.Count <= 0)
+                {
+                    continue;
+                }
+                
+                await repository.SaveChangesAsync(cancellationToken: stoppingToken);
+
+                repository.RefreshTracker();
+                
+                await publisher.Publish(new DeviceStatusesChangedNotification
+                {
+                    ChangedDeviceStatuses = notificationItems,
+                }, stoppingToken);
+                
             }
             catch (Exception e)
             {
