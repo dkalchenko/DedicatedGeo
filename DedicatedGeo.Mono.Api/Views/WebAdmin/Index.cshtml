@@ -124,7 +124,6 @@
     /* caret should not grow */
     .cds-right{ flex:0 0 auto; }
     .cds-toggle .label{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#e6eef8; font-weight:600; }
-    .cds-toggle .sub{ font-size:12px; color:#9aa4b2; }
     .cds-right{ margin-left:auto; display:flex; align-items:center; gap:8px; }
     .cds-caret{ width:18px; height:18px; display:flex; align-items:center; justify-content:center; transform:rotate(0deg); transition:transform .18s ease; opacity:0.95 }
     .cds-open .cds-caret{ transform: rotate(180deg); }
@@ -170,15 +169,19 @@
     .status-true{ color:#22c55e; font-weight:700; }
     .status-false{ color:#9aa4b2; font-weight:700; }
 
+    /* make status items clickable and align with sidebar micro-interactions */
+    .status-item[role="button"]{ cursor:pointer; border:1px solid rgba(255,255,255,0.02); }
+    .status-item[role="button"]:hover{ transform: translateY(-2px); box-shadow: 0 8px 20px rgba(2,6,23,0.45); }
+
     /* success card (green) */
     .status-item.ok{
-        border-color: rgba(34, 197, 94);
+        border-color: rgba(34, 197, 94, 0.3);
         background: linear-gradient(90deg, rgba(34,197,94,0.3), rgba(34,197,94,0.01));
         box-shadow: 0 8px 20px rgba(34,197,94,0.03);
     }
     /* bad card (red) */
     .status-item.bad{
-        border-color: rgba(239, 68, 68);
+        border-color: rgba(239, 68, 68, 0.3);
         background: linear-gradient(90deg, rgba(239,68,68,0.3), rgba(239,68,68,0.01));
         box-shadow: 0 8px 20px rgba(239,68,68,0.03);
     }
@@ -200,9 +203,37 @@
     .datetime-input{ background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.04); color:#e6eef8; padding:8px; border-radius:8px; }
     .datetime-input::-webkit-calendar-picker-indicator{ filter:invert(1) grayscale(1); }
 
+    /* STATUS HISTORY MODAL
+       NOTE: removed duplicate/conflicting grid-based history CSS earlier so only this flex-based
+       history modal styling controls the layout. This keeps the timeline line and dots aligned.
+    */
+    .modal-backdrop{ position: fixed; inset: 0; background: rgba(2,6,23,0.6); z-index: 1400; display:none; align-items:center; justify-content:center; }
+    .modal-backdrop.open{ display:flex; }
+    .modal-card{ width: min(720px, 96vw); max-height: 86vh; overflow:auto; border-radius:12px; background: linear-gradient(180deg, rgba(11,18,28,0.98), rgba(6,10,16,0.95)); border:1px solid rgba(255,255,255,0.04); padding:16px; box-shadow: 0 24px 80px rgba(2,6,23,0.6); font-size:13px; }
+    .modal-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+    .modal-title{ font-weight:700; color:#e6eef8; }
+    .modal-sub{ color:#9aa4b2; font-size:12px; }
+    .modal-close{ background:transparent; border:1px solid rgba(255,255,255,0.04); color:#e6eef8; padding:6px 8px; border-radius:8px; cursor:pointer; }
+    .modal-list{ display:flex; flex-direction:column; gap:8px; position:relative; padding-left:28px; max-height:68vh; overflow:auto; padding-right:8px; }
+    /* vertical timeline line inside the modal list (put behind the dots) */
+    .modal-list::before{ content: ''; position:absolute; left:12px; top:12px; bottom:12px; width:2px; background: rgba(255,255,255,0.03); border-radius:2px; z-index:1; }
+    /* each history item has a dot anchored so its center aligns with the above line
+       Calculation picks left so: modal-list::before center (~13px) = (modal-list padding-left 28px) + (dot left) + (dot visual center)
+       dot visual center = width/2 + border-width (6 + 2) => left ≈ -23px
+    */
+    .history-item{ position:relative; display:flex; align-items:flex-start; gap:12px; padding:12px 10px 12px 18px; border-radius:8px; background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.02)); border:1px solid rgba(255,255,255,0.02); }
+    .history-item::before{ content: ''; position:absolute; left:-23px; top:50%; transform:translateY(-50%); width:12px; height:12px; border-radius:50%; background: rgba(255,255,255,0.02); border:2px solid rgba(255,255,255,0.04); z-index:2; }
+    .history-time{ color:#9aa4b2; font-size:12px; min-width:160px; }
+    /* right-side line that contains "StatusName: Value" text */
+    .history-line{ color:#e6eef8; font-weight:700; word-break:break-word; }
+    .history-empty{ color:#9aa4b2; padding:12px; text-align:center; }
+    .spinner{ width:28px;height:28px;border-radius:999px;border:3px solid rgba(255,255,255,0.06);border-top-color:#5ab3ff; animation:spin 1s linear infinite; }
+    @@keyframes spin{ to { transform:rotate(360deg); } }
+
     @@media (max-width:560px){
         .points-container{ flex-direction:column; }
         .group{ min-width:unset; }
+        .modal-card{ width: 94vw; }
     }
 </style>
 
@@ -255,37 +286,56 @@
         <h4>Status</h4>
         <div class="status-grid" id="statusGrid">
 
-            <div class="status-item">
+            <div class="status-item" role="button" data-status="IsDeviceOnline">
                 <div class="label">Online</div>
-                <div id="IsOnline" class="val">—</div>
+                <div id="IsDeviceOnline" class="val">—</div>
             </div>
-            <div class="status-item">
+            <div class="status-item" role="button" data-status="BatteryLevel">
                 <div class="label">Battery Level</div>
                 <div id="BatteryLevel" class="val">—</div>
             </div>
-            <div class="status-item">
+            <div class="status-item" role="button" data-status="IsGPSOnline">
                 <div class="label">GPS Online</div>
                 <div id="IsGPSOnline" class="val status-false">—</div>
             </div>
-            <div class="status-item">
+            <div class="status-item" role="button" data-status="IsButtonPressed">
                 <div class="label">Button Pressed</div>
                 <div id="IsButtonPressed" class="val status-false">—</div>
             </div>
-            <div class="status-item">
+            <div class="status-item" role="button" data-status="IsInAlarm">
                 <div class="label">Alarm</div>
                 <div id="IsInAlarm" class="val status-false">—</div>
             </div>
-            <div class="status-item">
+            <div class="status-item" role="button" data-status="IsInCharge">
                 <div class="label">Is In Charge</div>
                 <div id="IsInCharge" class="val status-false">—</div>
             </div>
-            <div class="status-item" style="grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center;">
+            <div class="status-item" style="grid-column:1 / -1; display:flex; justify-content:space-between; align-items:center;" data-status="UpdatedAt">
                 <div style="font-size:13px;color:#9aa4b2">Updated At</div>
                 <div id="lastFetched" style="font-size:12px;color:#9aa4b2">—</div>
             </div>
         </div>
     </div>
 </aside>
+
+<!-- STATUS HISTORY MODAL MARKUP -->
+<div id="statusHistoryModalBackdrop" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="statusHistoryTitle">
+        <div class="modal-header">
+            <div>
+                <div id="statusHistoryTitle" class="modal-title">History</div>
+                <div id="statusHistorySub" class="modal-sub">&nbsp;</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <div id="statusHistorySpinner" style="display:none" class="spinner" aria-hidden="true"></div>
+                <button id="closeStatusHistory" class="modal-close">Close</button>
+            </div>
+        </div>
+        <div id="statusHistoryList" class="modal-list">
+            <div class="history-empty">Select a status to see history</div>
+        </div>
+    </div>
+</div>
 
 <!-- scripts removed as requested -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -825,7 +875,7 @@
         try {
             // Only fetch when a device is selected
             if (!selectedDeviceId) return;
-            const url = `/v1/admin/devices/${encodeURIComponent(selectedDeviceId)}/status`;
+            const url = `/v1/admin/devices/${encodeURIComponent(selectedDeviceId)}/statuses`;
             const resp = await fetch(url, { cache: 'no-store' });
              if (!resp.ok) {
                  // if endpoint not found or returns error, leave placeholders
@@ -909,7 +959,7 @@
                 setBool('IsInAlarm', null);
                 setBool('IsButtonPressed', null);
                 setBool('IsInCharge', null);
-                setBool('IsOnline', null);
+                setBool('IsDeviceOnline', null);
 
                 const last = document.getElementById('lastFetched'); if (last) last.innerText = formatLocal(new Date());
                 const statusUpdatedEl = document.getElementById('statusUpdated'); if (statusUpdatedEl) statusUpdatedEl.innerText = '';
@@ -924,7 +974,7 @@
                 setBool('IsInAlarm', null);
                 setBool('IsButtonPressed', null);
                 setBool('IsInCharge', null);
-                setBool('IsOnline', rawOnline);
+                setBool('IsDeviceOnline', rawOnline);
 
                 // UpdatedAt: try to parse and display local time
                 const rawUpdated = device.UpdatedAt ?? device.updatedAt ?? device.UpdatedAtUtc ?? device.updatedAtUtc ?? device.updatedAt;
@@ -945,7 +995,7 @@
             setNegativeBool('IsInAlarm', device.IsInAlarm ?? device.isInAlarm ?? device.inAlarm ?? null);
             setBoolWithoutColor('IsButtonPressed', device.IsButtonPressed ?? device.isButtonPressed ?? device.buttonPressed ?? null);
             setBoolWithoutColor('IsInCharge', device.IsInCharge ?? device.isInCharge ?? device.inCharge ?? null);
-            setBool('IsOnline', rawOnline);
+            setBool('IsDeviceOnline', rawOnline);
 
 
 
@@ -966,4 +1016,126 @@
     fetchDeviceStatus();
     setInterval(fetchDeviceStatus, 2000);
 
+    // --- STATUS HISTORY HANDLERS ---
+    // Utility: build history URL for selected device and statusName using current pickers
+    function buildStatusHistoryUrl(deviceId, statusName) {
+        if (!deviceId) return null;
+        let url = `/v1/admin/devices/${encodeURIComponent(deviceId)}/statuses/${encodeURIComponent(statusName)}/history`;
+        const params = [];
+        const fromEl = document.getElementById('fromPicker');
+        const toEl = document.getElementById('toPicker');
+        if (fromEl && fromEl.value) params.push('from=' + encodeURIComponent(localToISOString(fromEl.value)));
+        if (toEl && toEl.value) params.push('to=' + encodeURIComponent(localToISOString(toEl.value)));
+        if (params.length) url += '?' + params.join('&');
+        return url;
+    }
+
+    // Open modal and fetch history for a status
+    async function openStatusHistory(statusName, labelText) {
+        if (!selectedDeviceId) {
+            alert('Please select a device first.');
+            return;
+        }
+        const backdrop = document.getElementById('statusHistoryModalBackdrop');
+        const title = document.getElementById('statusHistoryTitle');
+        const sub = document.getElementById('statusHistorySub');
+        const list = document.getElementById('statusHistoryList');
+        const spinner = document.getElementById('statusHistorySpinner');
+        if (!backdrop || !title || !sub || !list) return;
+
+        title.innerText = `${labelText || statusName} history`;
+        sub.innerText = `Device ${selectedDeviceId}`;
+        list.innerHTML = '';
+        spinner.style.display = '';
+        backdrop.classList.add('open');
+
+        try {
+            const url = buildStatusHistoryUrl(selectedDeviceId, statusName);
+            if (!url) throw new Error('No device selected');
+            const resp = await fetch(url, { cache: 'no-store' });
+            if (!resp.ok) throw new Error('Server returned ' + resp.status);
+            const data = await resp.json();
+            // normalize to array
+            let items = [];
+            if (Array.isArray(data)) items = data;
+            else if (Array.isArray(data?.statusHistory)) items = data.statusHistory;
+
+            // render
+            if (!items || items.length === 0) {
+                list.innerHTML = `<div class=\"history-empty\">No history found for this range.</div>`;
+            } else {
+                // Attempt to map items to { value, timestamp }
+                const mapped = items.map(it => {
+                    const rawVal = it.newValue ?? null;
+                    const rawTs = it.changedAt;
+                    return { rawVal, rawTs };
+                }).sort((a,b)=>{
+                    const ta = parseTimestamp(a.rawTs)?.getTime() ?? 0;
+                    const tb = parseTimestamp(b.rawTs)?.getTime() ?? 0;
+                    return tb - ta;
+                });
+
+                list.innerHTML = '';
+                mapped.forEach(m => {
+                    const time = parseTimestamp(m.rawTs);
+                    const timeText = time ? formatLocal(time) : '—';
+                    // Format value: convert booleans (and boolean-like strings) to Yes/No
+                    const raw = m.rawVal;
+                    let valText;
+                    if (raw === null || raw === undefined) valText = '—';
+                    else if (typeof raw === 'boolean') valText = raw ? 'Yes' : 'No';
+                    else if (typeof raw === 'string' && (raw.toLowerCase() === 'true' || raw.toLowerCase() === 'false')) valText = (raw.toLowerCase() === 'true') ? 'Yes' : 'No';
+                    else valText = String(raw);
+
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'history-item';
+                    // Render as: {DateTime} {StatusName}: {Value}
+                    const label = (labelText || statusName);
+                    itemEl.innerHTML = `<div class=\"history-time\">${timeText}</div><div class=\"history-line\">${label}: ${valText}</div>`;
+                    list.appendChild(itemEl);
+                });
+            }
+        } catch (e) {
+            console.warn('openStatusHistory error', e);
+            list.innerHTML = `<div class=\"history-empty\">Failed to load history: ${String(e.message || e)}</div>`;
+        } finally {
+            spinner.style.display = 'none';
+        }
+    }
+
+    // Close modal
+    function closeStatusHistory() {
+        const backdrop = document.getElementById('statusHistoryModalBackdrop');
+        if (backdrop) backdrop.classList.remove('open');
+    }
+
+    // Wire status-item clicks to open history
+    function wireStatusHistoryClicks() {
+        const statusItems = document.querySelectorAll('.status-item[role="button"]');
+        function lowerFirst(str) {
+            if (!str || typeof str !== 'string') return '';
+            return str.charAt(0).toLowerCase() + str.slice(1);
+        }
+        statusItems.forEach(it => {
+            // avoid binding UpdatedAt row (data-status may be 'UpdatedAt')
+            const statusName = it.dataset.status;
+            if (!statusName || statusName === 'UpdatedAt') return;
+            it.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                // human label from inner .label or fallback to statusName
+                const lbl = it.querySelector('.label')?.innerText || statusName;
+                openStatusHistory(lowerFirst(statusName), lbl);
+            });
+        });
+
+        const closeBtn = document.getElementById('closeStatusHistory');
+        if (closeBtn) closeBtn.addEventListener('click', closeStatusHistory);
+        const backdrop = document.getElementById('statusHistoryModalBackdrop');
+        if (backdrop) backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeStatusHistory(); });
+    }
+
+    // ensure wiring runs once DOM is ready (script near bottom so this will run immediately)
+    wireStatusHistoryClicks();
+
 </script>
+
