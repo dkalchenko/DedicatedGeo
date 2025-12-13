@@ -143,9 +143,72 @@
     .cds-item .name{ font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .cds-item .id{ color:#9aa4b2; font-size:12px; margin-left:auto; }
     #noDevicesText{ color: #9aa4b2; font-size:13px; padding:4px 0; }
-    /* custom scrollbar for the dropdown */
-    .cds-list::-webkit-scrollbar{ width:10px; }
-    .cds-list::-webkit-scrollbar-thumb{ background: rgba(255,255,255,0.04); border-radius:6px; }
+
+    /* Unified, pretty scrollbars for supported browsers
+       - Uses CSS variables for easy tweaking
+       - Applies to known scrollable elements used in this view: dropdown (.cds-list), sidebar list (.points-container), modal (.modal-card/.modal-list)
+       - Supports WebKit-based browsers via ::-webkit-scrollbar and Firefox via scrollbar-width/scrollbar-color
+    */
+    :root{
+        --scrollbar-thumb: rgba(255,255,255,0.04);
+        --scrollbar-thumb-hover: rgba(255,255,255,0.08);
+        --scrollbar-track: transparent;
+        --scrollbar-width: 10px;
+    }
+
+    /* Target the specific scrollable elements we have in this page */
+    .cds-list, .points-container, .modal-card, .modal-list, .cds-list .cds-items {
+        /* Firefox */
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+
+    /* WebKit / Blink */
+    .cds-list::-webkit-scrollbar,
+    .points-container::-webkit-scrollbar,
+    .modal-card::-webkit-scrollbar,
+    .modal-list::-webkit-scrollbar,
+    .cds-list .cds-items::-webkit-scrollbar {
+        width: var(--scrollbar-width);
+        height: var(--scrollbar-width);
+    }
+
+    .cds-list::-webkit-scrollbar-track,
+    .points-container::-webkit-scrollbar-track,
+    .modal-card::-webkit-scrollbar-track,
+    .modal-list::-webkit-scrollbar-track,
+    .cds-list .cds-items::-webkit-scrollbar-track {
+        background: var(--scrollbar-track);
+    }
+
+    .cds-list::-webkit-scrollbar-thumb,
+    .points-container::-webkit-scrollbar-thumb,
+    .modal-card::-webkit-scrollbar-thumb,
+    .modal-list::-webkit-scrollbar-thumb,
+    .cds-list .cds-items::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb);
+        border-radius: 8px;
+        border: 2px solid rgba(255,255,255,0.01); /* subtle inset feel */
+    }
+
+    /* Hover/focus states make the thumb more visible */
+    .cds-list:hover::-webkit-scrollbar-thumb,
+    .points-container:hover::-webkit-scrollbar-thumb,
+    .modal-card:hover::-webkit-scrollbar-thumb,
+    .modal-list:hover::-webkit-scrollbar-thumb,
+    .cds-list .cds-items:hover::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb-hover);
+    }
+
+    /* For accessibility: slightly darker thumb when focused (keyboard) */
+    .cds-list:focus-visible::-webkit-scrollbar-thumb,
+    .points-container:focus-visible::-webkit-scrollbar-thumb,
+    .modal-card:focus-visible::-webkit-scrollbar-thumb,
+    .modal-list:focus-visible::-webkit-scrollbar-thumb,
+    .cds-list .cds-items:focus-visible::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb-hover);
+        outline: 2px solid rgba(90,179,255,0.08);
+    }
 
     .section { background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.03)); border-radius:12px; padding:12px; border:1px solid rgba(255,255,255,0.03); }
     .section h4{ margin:0 0 8px 0; font-size:13px; color:#dfe8f7; display:flex;justify-content:space-between; align-items:center; }
@@ -1140,4 +1203,3 @@
     wireStatusHistoryClicks();
 
 </script>
-
