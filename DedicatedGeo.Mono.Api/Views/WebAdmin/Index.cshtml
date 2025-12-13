@@ -24,19 +24,7 @@
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
     }
 
-    .sidebar-backdrop{
-        position: fixed;
-        inset: 0;
-        background: transparent;
-        z-index: 1100;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity .18s ease, background-color .18s ease;
-    }
-    .sidebar-backdrop.open{
-        opacity: 0;
-        pointer-events: auto;
-    }
+    /* NOTE: overlay/backdrop removed. Sidebar now uses an explicit close button instead of an overlay. */
 
     .sidebar{
         position: fixed;
@@ -89,8 +77,8 @@
     }
 
     .sidebar-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
-    /* hide the empty actions area so the selector can expand full width */
-    .sidebar-header .actions { display: none; }
+    /* show header actions (we add a close button into .actions) */
+    .sidebar-header .actions { display: flex; align-items:center; gap:8px; }
     .title{ display:flex; align-items:center; gap:12px; flex:1; min-width:0; }
     /* make title occupy full header width */
     .title{ width:100%; padding:0; }
@@ -121,7 +109,6 @@
     .cds-dot{ display:none; }
     /* label should flex to occupy remaining space */
     .cds-toggle .label{ flex:1; min-width:0; }
-    /* caret should not grow */
     .cds-right{ flex:0 0 auto; }
     .cds-toggle .label{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#e6eef8; font-weight:600; }
     .cds-right{ margin-left:auto; display:flex; align-items:center; gap:8px; }
@@ -317,11 +304,12 @@
 
 <button id="openSidebar">Details</button>
 
-<div id="backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
-
 <aside id="sidebar" class="sidebar" aria-hidden="true">
     <div class="sidebar-header">
         <div class="title"><h3 style="margin:0;font-size:14px;color:#dfe8f7">Devices</h3></div>
+        <div class="actions" style="display:flex;">
+            <button id="closeSidebar" class="modal-close" aria-label="Close sidebar">Close</button>
+        </div>
     </div>
 
     <!-- Full-width device selector placed below header to guarantee it spans the sidebar -->
@@ -909,10 +897,8 @@
                 // close sidebar/backdrop to reveal the map (if open)
                 try {
                     const sb = document.getElementById('sidebar');
-                    const bd = document.getElementById('backdrop');
                     if (sb && sb.classList.contains('open')) {
                         sb.classList.remove('open');
-                        if (bd) bd.classList.remove('open');
                         try { setDetailsButtonVisible(true); } catch (e) {}
                     }
                 } catch (e) {}
@@ -938,18 +924,17 @@
 
     const openBtn = document.getElementById('openSidebar');
     const sidebarEl = document.getElementById('sidebar');
-    const backdropEl = document.getElementById('backdrop');
+    // backdrop element was removed; close is handled with an explicit button inside the sidebar
 
     function setDetailsButtonVisible(visible) {
         if (!openBtn) return;
         openBtn.style.display = visible ? '' : 'none';
     }
 
-    if (openBtn && sidebarEl && backdropEl) {
+    if (openBtn && sidebarEl) {
         openBtn.addEventListener('click', () => {
             const willOpen = !sidebarEl.classList.contains('open');
             sidebarEl.classList.toggle('open');
-            backdropEl.classList.toggle('open');
             if (willOpen) {
                 sidebarEl.style.background = 'rgba(11,18,28,0.95)';
                 sidebarEl.style.opacity = '1';
@@ -960,13 +945,11 @@
 
         const closeHandler = () => {
             sidebarEl.classList.remove('open');
-            backdropEl.classList.remove('open');
             setDetailsButtonVisible(true);
         };
 
         const closeBtn = document.getElementById('closeSidebar');
         if (closeBtn) closeBtn.addEventListener('click', closeHandler);
-        backdropEl.addEventListener('click', closeHandler);
     }
 
     const deleteBtn = document.getElementById('deleteAll');
