@@ -807,7 +807,8 @@
                     entry.className = 'point';
                     entry.dataset.index = String(idx);
                     entry.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700">${lat.toFixed(6)}, ${lon.toFixed(6)}</div><div style="font-size:11px;color:#9aa4b2">${createdText || '—'}</div></div>`;
-                    entry.addEventListener('click', () => { selectMarker(idx, true); });
+                    // Clicking a point in the sidebar should not close the sidebar — pass closeOnPan:false
+                    entry.addEventListener('click', () => { selectMarker(idx, true, { closeOnPan: false }); });
                     pointsContainer.appendChild(entry);
                 });
             }
@@ -856,7 +857,7 @@
         }
     }
 
-    function selectMarker(idx, pan = false) {
+    function selectMarker(idx, pan = false, opts = {}) {
         if (!Array.isArray(mapMarkers) || idx == null || idx < 0 || idx >= mapMarkers.length) return;
         if (selectedMarkerIndex != null && mapMarkers[selectedMarkerIndex]) {
             try { mapMarkers[selectedMarkerIndex].setStyle({ radius: 5, color: '#1e88e5', fillColor: '#1e88e5' }); } catch (e) {}
@@ -873,6 +874,9 @@
             el.classList.add('selected');
             el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
+
+        // default behavior: close sidebar on pan unless explicitly disabled
+        const closeOnPan = (opts && typeof opts.closeOnPan !== 'undefined') ? !!opts.closeOnPan : true;
 
         // If pan is requested, animate the map to the marker with a close zoom level,
         // then open the popup once movement ends. Also close the sidebar/backdrop so the map is visible.
@@ -894,12 +898,14 @@
                 // open popup after map movement finishes so it positions correctly
                 map.once('moveend', () => { try { marker.openPopup(); } catch (e) {} });
 
-                // close sidebar/backdrop to reveal the map (if open)
+                // close sidebar to reveal the map (if open) only when closeOnPan is true
                 try {
-                    const sb = document.getElementById('sidebar');
-                    if (sb && sb.classList.contains('open')) {
-                        sb.classList.remove('open');
-                        try { setDetailsButtonVisible(true); } catch (e) {}
+                    if (closeOnPan) {
+                        const sb = document.getElementById('sidebar');
+                        if (sb && sb.classList.contains('open')) {
+                            sb.classList.remove('open');
+                            try { setDetailsButtonVisible(true); } catch (e) {}
+                        }
                     }
                 } catch (e) {}
             } catch (e) {}
