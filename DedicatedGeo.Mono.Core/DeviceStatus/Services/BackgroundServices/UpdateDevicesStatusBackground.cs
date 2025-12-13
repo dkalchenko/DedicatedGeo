@@ -52,12 +52,12 @@ public class UpdateDevicesStatusBackground: BackgroundService
             try
             {
                 var devices = await repository.Devices.ToListAsync(cancellationToken: stoppingToken);
-                
+
                 foreach (var devicesChunk in devices.Chunk(50))
                 {
-                    
+
                     var changedStatuses = new List<Models.Device.DeviceStatus>();
-                    
+
                     foreach (var device in devicesChunk)
                     {
                         var devicesStatus = await repository.DeviceStatuses
@@ -65,30 +65,21 @@ public class UpdateDevicesStatusBackground: BackgroundService
                             .Where(x => x.DeviceId == device.DeviceId)
                             .OrderByDescending(x => x.UpdatedAt)
                             .FirstOrDefaultAsync(cancellationToken: stoppingToken);
-                        
+
                         if (devicesStatus is null)
                         {
                             continue;
                         }
-                    
-                        if (devicesStatus.IsDeviceOnline && !devicesStatus.UpdatedAt.IsWithinLastMinutes(OwnConstants.DeviceIsInactivityStatusAfterInSecond))
+
+                        if (devicesStatus.IsDeviceOnline &&
+                            !devicesStatus.UpdatedAt.IsWithinLastMinutes(OwnConstants
+                                .DeviceIsInactivityStatusAfterInMinutes))
                         {
-                            changedStatuses.Add(new Models.Device.DeviceStatus
-                            {
-                                DeviceId = device.DeviceId,
-                                DeviceStatusId = Guid.NewGuid(),
-                                UpdatedAt = DateTime.UtcNow,
-                                IsDeviceOnline = false,
-                                IsButtonPressed = devicesStatus.IsButtonPressed,
-                                IsInAlarm = devicesStatus.IsInAlarm,
-                                IsInCharge = devicesStatus.IsInCharge,
-                                IsGPSOnline = devicesStatus.IsGPSOnline,
-                                BatteryLevel = devicesStatus.BatteryLevel,
-                            });
-                        }   
+                            devicesStatus.IsDeviceOnline = false;
+                            changedStatuses.Add(devicesStatus);
+                        }
                     }
 
-                    repository.DeviceStatuses.AddRange(changedStatuses);
                     await repository.SaveChangesAsync(cancellationToken: stoppingToken);
                     var notificationItems = changedStatuses.Select(x => new ChangedDeviceStatusItem
                     {
@@ -101,13 +92,16 @@ public class UpdateDevicesStatusBackground: BackgroundService
 
                     await publisher.Publish(new DeviceStatusesChangedNotification
                     {
-                        ChangedDeviceStatuses =  notificationItems,
+                        ChangedDeviceStatuses = notificationItems,
                     }, stoppingToken);
                 }
             }
             catch (Exception e)
             {
                 _logger.LogError(e, "Exception from UpdateDevicesStatusBackground");
+            }
+            finally
+            {
                 await delayer.DelayAsync(OwnConstants.UpdateDeviceStatusBackgroundDelayInMillisecond, stoppingToken);
             }
         }

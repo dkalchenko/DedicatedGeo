@@ -160,7 +160,8 @@
     .cds-list, .points-container, .modal-card, .modal-list, .cds-list .cds-items {
         /* Firefox */
         scrollbar-width: thin;
-        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+        /* thumb color, track color */
+        scrollbar-color: rgba(255,255,255,0.04) transparent;
     }
 
     /* WebKit / Blink */
@@ -169,8 +170,8 @@
     .modal-card::-webkit-scrollbar,
     .modal-list::-webkit-scrollbar,
     .cds-list .cds-items::-webkit-scrollbar {
-        width: var(--scrollbar-width);
-        height: var(--scrollbar-width);
+        width: 10px;
+        height: 10px;
     }
 
     .cds-list::-webkit-scrollbar-track,
@@ -178,7 +179,7 @@
     .modal-card::-webkit-scrollbar-track,
     .modal-list::-webkit-scrollbar-track,
     .cds-list .cds-items::-webkit-scrollbar-track {
-        background: var(--scrollbar-track);
+        background: transparent;
     }
 
     .cds-list::-webkit-scrollbar-thumb,
@@ -186,7 +187,7 @@
     .modal-card::-webkit-scrollbar-thumb,
     .modal-list::-webkit-scrollbar-thumb,
     .cds-list .cds-items::-webkit-scrollbar-thumb {
-        background: var(--scrollbar-thumb);
+        background: rgba(255,255,255,0.04);
         border-radius: 8px;
         border: 2px solid rgba(255,255,255,0.01); /* subtle inset feel */
     }
@@ -197,7 +198,7 @@
     .modal-card:hover::-webkit-scrollbar-thumb,
     .modal-list:hover::-webkit-scrollbar-thumb,
     .cds-list .cds-items:hover::-webkit-scrollbar-thumb {
-        background: var(--scrollbar-thumb-hover);
+        background: rgba(255,255,255,0.08);
     }
 
     /* For accessibility: slightly darker thumb when focused (keyboard) */
@@ -206,7 +207,7 @@
     .modal-card:focus-visible::-webkit-scrollbar-thumb,
     .modal-list:focus-visible::-webkit-scrollbar-thumb,
     .cds-list .cds-items:focus-visible::-webkit-scrollbar-thumb {
-        background: var(--scrollbar-thumb-hover);
+        background: rgba(255,255,255,0.08);
         outline: 2px solid rgba(90,179,255,0.08);
     }
 
