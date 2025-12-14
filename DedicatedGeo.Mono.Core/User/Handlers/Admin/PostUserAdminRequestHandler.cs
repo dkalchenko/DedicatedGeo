@@ -1,4 +1,5 @@
 using DedicatedGeo.Mono.Common;
+using DedicatedGeo.Mono.Common.Extensions;
 using DedicatedGeo.Mono.Dal.Abstractions;
 using DedicatedGeo.Mono.Dtos.User;
 using MediatR;
@@ -19,7 +20,7 @@ public class PostUserAdminRequestHandler: IRequestHandler<PostUserAdminRequest>
         var user = new Models.User.User
         {
             Email = request.Email,
-            Password = request.Password
+            Password = request.Password.ToPasswordHash()
         };
         
         _databaseRepository.Users.Add(user);

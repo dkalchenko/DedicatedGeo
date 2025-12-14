@@ -1,6 +1,4 @@
-﻿
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+﻿<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
     html, body, #map { height: 100vh; margin: 0; padding: 0; }
 
@@ -390,6 +388,56 @@
 
 <!-- scripts removed as requested -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // Global fetch wrapper: on any fetch response with status 401 or 403, redirect to login.
+    // Guards:
+    // - Do not install the wrapper on pages whose path contains "login" (prevents redirecting the login page).
+    // - Do not redirect when the failing request is itself to a login endpoint.
+    (function(){
+        if (typeof window === 'undefined') return;
+        try {
+            const path = (location && location.pathname) ? String(location.pathname).toLowerCase() : '';
+            if (path.includes('login')) return; // do not install on login pages
+
+            const originalFetch = window.fetch && window.fetch.bind(window);
+            if (!originalFetch) return;
+
+            window.fetch = async function(input, init) {
+                // call the original fetch
+                const resp = await originalFetch(input, init);
+                try {
+                    const status = resp && resp.status;
+                    if (status === 401 || status === 403) {
+                        // determine request target path to avoid redirecting when request was to login endpoint
+                        let reqUrl = '';
+                        try {
+                            reqUrl = (typeof input === 'string') ? input : (input && input.url) ? input.url : '';
+                            const resolvedPath = new URL(reqUrl, location.href).pathname.toLowerCase();
+                            if (resolvedPath.includes('login')) {
+                                return resp; // don't redirect if the request was for login
+                            }
+                        } catch (e) {
+                            // ignore URL parsing errors
+                        }
+
+                        // build returnUrl so server / login page can return back after auth
+                        const loginUrl = '/'
+
+                        // small timeout to give caller a chance to run any cleanup; redirect shortly after
+                        setTimeout(() => { try { window.location.href = loginUrl; } catch (e) {} }, 50);
+                    }
+                } catch (e) {
+                    // swallow any errors in wrapper to avoid breaking app flow
+                }
+                return resp;
+            };
+        } catch (e) {
+            // fail silently
+        }
+    })();
+</script>
+
 <script>
     // Device selector: async load all devices (paginated) from /v1/admin/devices
     async function fetchAllDevices() {
@@ -1268,3 +1316,4 @@
     wireStatusHistoryClicks();
 
 </script>
+

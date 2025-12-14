@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DedicatedGeo.Mono.Api.Controllers.User;
 
+[Route("/v1/admin/user")]
 public class UserAdminController: Controller
 {
     private readonly ISender _sender;

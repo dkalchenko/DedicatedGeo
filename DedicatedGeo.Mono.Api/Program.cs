@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using NLog;
 using NLog.Extensions.Logging;
 using Prometheus;
+using System;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.json");
@@ -25,6 +26,42 @@ builder.Services
     {
         var settings = new JwtBearerTokenSettings(builder.Configuration);
         options.TokenValidationParameters = settings.GenerateTokenValidationParameters();
+        // Read token from cookie named "AuthToken"
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (context.Request.Cookies.TryGetValue("AuthToken", out var token) && !string.IsNullOrEmpty(token))
+                {
+                    context.Token = token;
+                }
+                return Task.CompletedTask;
+            },
+
+            OnChallenge = context =>
+            {
+                try
+                {
+                    var req = context.Request;
+                    var isAdminPath = req.Path.StartsWithSegments("/admin", StringComparison.OrdinalIgnoreCase);
+                    var acceptHeader = req.Headers["Accept"].ToString() ?? string.Empty;
+                    var wantsHtml = acceptHeader.Contains("text/html");
+
+                    if (isAdminPath || wantsHtml)
+                    {
+                        // Prevent the default 401 JSON response
+                        context.HandleResponse();
+                        context.Response.Redirect("/");
+                    }
+                }
+                catch
+                {
+                    // If anything goes wrong here, don't throw — let the default behavior happen.
+                }
+
+                return Task.CompletedTask;
+            }
+        };
     });
 
 var app = builder.Build();
