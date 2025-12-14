@@ -6,7 +6,9 @@ using DedicatedGeo.Mono.Dal.Abstractions;
 using DedicatedGeo.Mono.Models;
 using DedicatedGeo.Mono.Models.Device;
 using DedicatedGeo.Mono.Models.Location;
+using DedicatedGeo.Mono.Models.User;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.IO;
@@ -24,6 +26,7 @@ public class DatabaseRepository : DbContext, IDatabaseRepository
     public DbSet<DeviceStatus> DeviceStatuses { get; init; }
     public DbSet<Device> Devices { get; init; }
     public DbSet<DeviceStatusHistory> DeviceStatusHistories { get; init; }
+    public DbSet<User> Users { get; init; }
 
     public virtual async Task SaveChangesAsync(CancellationToken? cancellationToken)
     {
@@ -38,6 +41,7 @@ public class DatabaseRepository : DbContext, IDatabaseRepository
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.UseExceptionProcessor();
+        optionsBuilder.ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
         base.OnConfiguring(optionsBuilder);
     }
 

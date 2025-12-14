@@ -4,10 +4,15 @@ using FluentValidation;
 using DedicatedGeo.Mono.Common;
 using DedicatedGeo.Mono.Common.Extensions;
 using DedicatedGeo.Mono.Core;
+using DedicatedGeo.Mono.Core.Abstractions.Auth.Services;
 using DedicatedGeo.Mono.Core.Abstractions.Common;
+using DedicatedGeo.Mono.Core.Abstractions.Settings;
+using DedicatedGeo.Mono.Core.Abstractions.User.Services;
+using DedicatedGeo.Mono.Core.Auth.Services;
 using DedicatedGeo.Mono.Core.Behaviors;
 using DedicatedGeo.Mono.Core.Common;
 using DedicatedGeo.Mono.Core.DeviceStatus.Services.BackgroundServices;
+using DedicatedGeo.Mono.Core.User.Services;
 using DedicatedGeo.Mono.Dal;
 using DedicatedGeo.Mono.Dal.Abstractions;
 using MediatR;
@@ -34,6 +39,8 @@ public static class Bootstrap
         serviceCollection.AddMemoryCache();
 
         serviceCollection.AddScoped<IDelayerService, DelayerService>();
+        serviceCollection.AddScoped<IUsersServices, UsersService>();
+        serviceCollection.AddScoped<ITokenService, TokenService>();
         serviceCollection.AddHostedService<UpdateDevicesStatusBackground>();
         
         serviceCollection.AddDbContext<IDatabaseRepository, DatabaseRepository>(
@@ -132,6 +139,7 @@ public static class Bootstrap
         services.AddSingleton<AppSettings>();
         services.AddSingleton<IDatabaseMigrationSettings, DatabaseMigrationSettings>();
         services.AddSingleton<MysqlSettings>();
+        services.AddSingleton<IJwtBearerTokenSettings, JwtBearerTokenSettings>();
     }
 
     public static void AddMiddlewares(this IApplicationBuilder services)

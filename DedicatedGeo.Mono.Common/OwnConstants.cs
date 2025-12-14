@@ -29,11 +29,18 @@ public static class OwnConstants
         ];
     }
     
+    public static class Claims
+    {
+        public const string UserIdClaim = "uid";
+        public const string IsRefreshClaim = "rfsht";
+    }
+    
     public static class EnvironmentKeys
     {
-        public const string MySqlConnectionString = "IDEALTEX_MYSQL_CONNECTION_STRING";
+        public const string MySqlConnectionString = "MYSQL_CONNECTION_STRING";
         public const string AspnetcoreEnvironment = "ASPNETCORE_ENVIRONMENT";
-        public const string LogFolder = "IDEALTEX_LOG_FOLDER";
+        public const string LogFolder = "LOG_FOLDER";
+        public const string JwtSecretKey = "WT_SECRET_KEY";
     }
     
     public static class ErrorTemplates
@@ -44,6 +51,17 @@ public static class OwnConstants
             "The requested {Resource} was not found.",
             HttpStatusCode.NotFound
         );
+        
+        public static ExceptionMaker TokenIsNotValid => new(
+            "Token is not valid. {0}",
+            HttpStatusCode.Forbidden
+        );
+
+        public static ExceptionMaker LoginFailedException => new(
+            "Your password or email are not valid",
+            HttpStatusCode.BadRequest
+        );
+
     }
     
 }

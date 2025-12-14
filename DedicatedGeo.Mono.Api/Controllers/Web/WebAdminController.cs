@@ -1,18 +1,15 @@
-﻿using DedicatedGeo.Mono.Dtos.Web;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DedicatedGeo.Mono.Api.Controllers.Web;
 
+[Authorize]
+[Route("admin")]
 public class WebAdminController: Controller
 {
-
-
-    [Route("/")]
-    public async Task<IActionResult> Index()
+    [HttpGet("map")]
+    public IActionResult Map()
     {
-        return View(new LocationPathViewDto
-        {
-            Title = "Location Viewer"
-        });
+        return View();
     }    
 }

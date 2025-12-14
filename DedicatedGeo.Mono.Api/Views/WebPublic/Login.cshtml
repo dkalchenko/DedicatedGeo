@@ -1,0 +1,199 @@
+@{
+    Layout = null; // standalone page
+}
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Login - DedicatedGeo</title>
+
+    <style>
+        /* Palette and typography align with Sidebar in Map.cshtml */
+        :root{
+            --bg: rgba(6,10,16,0.98);
+            --surface: rgba(11,18,28,0.85);
+            --muted: #9aa4b2;
+            --text: #e6eef8;
+            --accent-start: #7c5cff;
+            --accent-end: #5ab3ff;
+            --panel-border: rgba(255,255,255,0.03);
+        }
+        html,body{ height:100%; margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: linear-gradient(180deg, rgba(3,7,12,1), rgba(6,10,16,1)); color: #e6eef8; }
+
+        /* Centered container */
+        .login-root{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px; box-sizing:border-box; }
+
+        .login-card{
+            width: min(520px, 94vw);
+            background: linear-gradient(180deg, rgba(11,18,28,0.95), rgba(6,10,16,0.98));
+            border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 14px;
+            padding: 28px;
+            box-shadow: 0 20px 60px rgba(2,6,23,0.6);
+            display:flex; flex-direction:column; gap:18px;
+        }
+
+        .brand{ display:flex; align-items:center; gap:12px; }
+        .brand .dot{ width:48px; height:48px; border-radius:12px; background: linear-gradient(135deg,#7c5cff,#5ab3ff); display:flex; align-items:center; justify-content:center; font-weight:700; color:white; font-size:18px; }
+        .brand h1{ margin:0; font-size:20px; color:#e6eef8; }
+        .brand p{ margin:0; color:#9aa4b2; font-size:13px; }
+
+        .form-row{ display:flex; flex-direction:column; gap:8px; }
+        label{ font-size:13px; color:#9aa4b2; }
+
+        input[type="text"], input[type="email"], input[type="password"]{
+            background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03));
+            border: 1px solid rgba(255,255,255,0.04);
+            color: #e6eef8;
+            padding: 10px 12px;
+            border-radius: 10px;
+            font-size:14px;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        input:focus{ box-shadow: 0 6px 20px rgba(90,179,255,0.06); border-color: rgba(90,179,255,0.18); }
+
+        .input-with-action{ position:relative; }
+        /* ensure the input fills available width and leaves room for the icon button */
+        .input-with-action input{ width:100%; padding-right:44px; }
+        .input-action{ position:absolute; right:8px; top:50%; transform:translateY(-50%); background:transparent; border:none; color:#9aa4b2; cursor:pointer; padding:6px; border-radius:8px; display:flex; align-items:center; justify-content:center; width:34px; height:34px; }
+        .input-action svg{ width:18px; height:18px; fill:currentColor; }
+        .input-action:focus{ outline:2px solid rgba(90,179,255,0.12); }
+
+        .row{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+        .checkbox{ display:flex; align-items:center; gap:8px; color:#9aa4b2; font-size:13px; }
+
+        .btn-primary{
+            background: linear-gradient(90deg, #7c5cff, #5ab3ff);
+            border:none; color:white; padding:10px 14px; font-weight:700; border-radius:10px; cursor:pointer; font-size:14px;
+            box-shadow: 0 8px 30px rgba(90,179,255,0.06);
+        }
+        .btn-primary:disabled{ opacity:0.6; cursor:not-allowed; }
+
+        .secondary-actions{ display:flex; gap:12px; align-items:center; justify-content:space-between; }
+        .link{ color:#9aa4b2; font-size:13px; text-decoration:none; }
+        .link:hover{ color:#e6eef8; }
+
+        .divider{ height:1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.02), transparent); margin:6px 0; border-radius:4px; }
+
+        .social-row{ display:flex; gap:8px; }
+        .social-btn{ flex:1; padding:8px 10px; border-radius:8px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03)); border:1px solid rgba(255,255,255,0.03); color:#e6eef8; font-weight:600; cursor:pointer; }
+
+        .form-error{ color:#ffb4b4; background: linear-gradient(180deg, rgba(239,68,68,0.06), rgba(0,0,0,0.03)); border:1px solid rgba(239,68,68,0.12); padding:8px 10px; border-radius:8px; font-size:13px; display:none; }
+
+        .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+        @@media (max-width:560px){ .login-card{ padding:18px; } .brand h1{ font-size:18px; } }
+
+    </style>
+</head>
+<body>
+    <main class="login-root" role="main">
+        <section class="login-card" aria-labelledby="loginTitle">
+            <div class="brand">
+                <div>
+                    <h1 id="loginTitle">Welcome back</h1>
+                    <p>Sign in to your account</p>
+                </div>
+            </div>
+
+            <div id="formError" class="form-error" role="alert" aria-live="assertive"></div>
+
+            <form id="loginForm" method="post" action="/account/login" autocomplete="on" novalidate>
+                <div class="form-row">
+                    <label for="username">Email</label>
+                    <input id="username" name="username" type="text" inputmode="email" autocomplete="username" required aria-required="true" placeholder="you@example.com" />
+                </div>
+
+                <div class="form-row">
+                    <label for="password">Password</label>
+                    <div class="input-with-action">
+                        <input id="password" name="password" type="password" autocomplete="current-password" required aria-required="true" placeholder="Enter your password" />
+                        <button type="button" id="togglePassword" class="input-action" aria-label="Show password" title="Show password">
+                            <!-- Icon injected by JS on load; fallback text for very old UA -->
+                            <span class="sr-only">Show</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- submit row -->
+                <div class="row" style="margin-top:6px;">
+                    <div style="flex:1"></div>
+                    <button type="submit" id="submitBtn" class="btn-primary">Log in</button>
+                </div>
+
+            </form>
+
+            <footer style="font-size:12px;color:#9aa4b2;text-align:center;margin-top:6px;">By signing in you agree to our <a class="link" href="/terms">Terms</a> and <a class="link" href="/privacy">Privacy policy</a>.</footer>
+        </section>
+    </main>
+
+    <script>
+        // Progressive enhancement: client-side validation, show/hide password, focus management
+        (function(){
+            const form = document.getElementById('loginForm');
+            const username = document.getElementById('username');
+            const password = document.getElementById('password');
+            const toggle = document.getElementById('togglePassword');
+            const submitBtn = document.getElementById('submitBtn');
+            const formError = document.getElementById('formError');
+
+            // small inline SVGs for show/hide
+            const eyeSvg = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">' +
+                '<path d="M12 5c-7 0-11 7-11 7s4 7 11 7 11-7 11-7-4-7-11-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>' +
+                '<circle cx="12" cy="12" r="2.5"/></svg>';
+            const eyeOffSvg = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">' +
+                '<path d="M2 3l2 2 2 2A16 16 0 0 1 21 12s-2 3.5-7 6l2 2 2 2 2-2-2-2-2-2" fill="none" stroke="currentColor" stroke-width="1.2"/>' +
+                '<path d="M10.59 6.59A6 6 0 0 1 18 12a6 6 0 0 1-9.41 5.41" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>';
+
+            // set initial icon
+            try { toggle.innerHTML = eyeSvg; } catch(e){ /* ignore */ }
+
+            // focus the first field
+            try { username.focus(); } catch(e) {}
+
+            toggle.addEventListener('click', () => {
+                const isPwd = password.getAttribute('type') === 'password';
+                password.setAttribute('type', isPwd ? 'text' : 'password');
+                // swap icon
+                try{ toggle.innerHTML = isPwd ? eyeOffSvg : eyeSvg; } catch(e){}
+                toggle.setAttribute('aria-label', isPwd ? 'Hide password' : 'Show password');
+                toggle.setAttribute('title', isPwd ? 'Hide password' : 'Show password');
+                password.focus();
+            });
+
+            function showError(msg){ formError.innerText = msg; formError.style.display = 'block'; }
+            function clearError(){ formError.innerText = ''; formError.style.display = 'none'; }
+
+            form.addEventListener('submit', function(ev){
+                clearError();
+                // basic client-side checks
+                if (!username.value || !username.value.trim()){
+                    ev.preventDefault(); showError('Please enter your email or username.'); username.focus(); return false;
+                }
+                if (!password.value || !password.value.trim()){
+                    ev.preventDefault(); showError('Please enter your password.'); password.focus(); return false;
+                }
+
+                // disable submit to prevent double submits
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.setAttribute('aria-busy', 'true');
+                }
+
+                // allow normal form submit to server. If you use AJAX, intercept here.
+            });
+
+            // clear error when user types
+            [username, password].forEach(el => el.addEventListener('input', clearError));
+
+            // keyboard shortcut: Enter on password triggers submit
+            password.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') form.requestSubmit(); });
+
+        })();
+    </script>
+</body>
+</html>

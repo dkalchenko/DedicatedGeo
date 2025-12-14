@@ -9,4 +9,8 @@
       <Compile Remove="Common\ICursorTokenService.cs" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\DedicatedGeo.Mono.Entities\DedicatedGeo.Mono.Entities.csproj" />
+    </ItemGroup>
+
 </Project>
