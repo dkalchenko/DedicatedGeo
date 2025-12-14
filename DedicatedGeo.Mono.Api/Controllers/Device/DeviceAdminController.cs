@@ -3,10 +3,12 @@ using DedicatedGeo.Mono.Dtos.Device;
 using DedicatedGeo.Mono.Dtos.Location;
 using HybridModelBinding;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DedicatedGeo.Mono.Api.Controllers.Admin;
+namespace DedicatedGeo.Mono.Api.Controllers.Device;
 
+[Authorize]
 [Route("/v1/admin/devices")]
 public class DeviceAdminController: Controller
 {
