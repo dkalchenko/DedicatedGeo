@@ -1133,7 +1133,6 @@
                 const rawUpdated = device.UpdatedAt ?? device.updatedAt ?? device.UpdatedAtUtc ?? device.updatedAtUtc ?? device.updatedAt;
                 const updatedDate = parseTimestamp(rawUpdated);
                 const lastFetchedEl = document.getElementById('lastFetched');
-                console.log(rawUpdated, updatedDate, formatLocal(updatedDate))
                 if (lastFetchedEl) lastFetchedEl.innerText = formatLocal(updatedDate);
 
                 const statusUpdatedEl2 = document.getElementById('statusUpdated'); if (statusUpdatedEl2) statusUpdatedEl2.innerText = '';
@@ -1156,7 +1155,6 @@
             const rawUpdated = device.UpdatedAt ?? device.updatedAt ?? device.UpdatedAtUtc ?? device.updatedAtUtc ?? device.updatedAt;
             const updatedDate = parseTimestamp(rawUpdated);
             const lastFetchedEl = document.getElementById('lastFetched');
-            console.log(rawUpdated, updatedDate, formatLocal(updatedDate))
             if (lastFetchedEl) lastFetchedEl.innerText = formatLocal(updatedDate);
 
             const statusUpdatedEl2 = document.getElementById('statusUpdated'); if (statusUpdatedEl2) statusUpdatedEl2.innerText = '';

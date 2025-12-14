@@ -236,7 +236,6 @@
             // perform login via fetch to /v1/public/auth/login
             async function performLogin(payload){
                 const url = '/v1/public/auth/login';
-                console.log("start")
                 
                 try{
                     const resp = await fetch(url, {
@@ -247,12 +246,10 @@
                         },
                         body: JSON.stringify(payload)
                     });
-                    console.log(resp)
                     if (resp.status === 200){
                         // success
                         let data;
                         try{ data = await resp.json(); } catch(e){ data = null; }
-                        console.log(data)
                         const token = data && (data.token || data.Token) ? (data.token || data.Token) : null;
                         if (token){
                             localStorage.setItem('AuthToken', token);
@@ -282,7 +279,6 @@
                     console.error('Network or CORS error during login', err);
                     showToast('Something happened during request', { type: 'error' });
                 } finally{
-                    console.log("finish")
                     if (submitBtn){ submitBtn.disabled = false; submitBtn.removeAttribute('aria-busy'); }
                 }
             }
