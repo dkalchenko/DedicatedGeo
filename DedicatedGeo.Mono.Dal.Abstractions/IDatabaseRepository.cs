@@ -12,6 +12,7 @@ public interface IDatabaseRepository
     DbSet<DeviceStatus> DeviceStatuses { get; }
     DbSet<Device> Devices { get; }
     DbSet<DeviceStatusHistory> DeviceStatusHistories { get; }
+    DbSet<DeviceAssignment> DeviceAssignments { get; }
     DbSet<User> Users { get; }
     Task SaveChangesAsync(CancellationToken? cancellationToken);
     void RefreshTracker();

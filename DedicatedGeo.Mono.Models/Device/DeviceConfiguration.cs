@@ -15,6 +15,10 @@ public class DeviceConfiguration : IEntityTypeConfiguration<Device>
             .HasMaxLength(16)
             .IsRequired();
         
+        builder.Property(d => d.Name)
+            .HasMaxLength(128)
+            .IsRequired();
+        
         builder.HasOne(x => x.DeviceStatus)
             .WithOne()
             .HasForeignKey<DeviceStatus>(x => x.DeviceId)

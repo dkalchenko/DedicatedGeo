@@ -26,6 +26,7 @@ public class DatabaseRepository : DbContext, IDatabaseRepository
     public DbSet<DeviceStatus> DeviceStatuses { get; init; }
     public DbSet<Device> Devices { get; init; }
     public DbSet<DeviceStatusHistory> DeviceStatusHistories { get; init; }
+    public DbSet<DeviceAssignment> DeviceAssignments { get; init; }
     public DbSet<User> Users { get; init; }
 
     public virtual async Task SaveChangesAsync(CancellationToken? cancellationToken)

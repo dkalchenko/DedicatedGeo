@@ -35,12 +35,19 @@ public static class OwnConstants
         public const string IsRefreshClaim = "rfsht";
     }
     
+    public static class Roles
+    {
+        public const string SuperAdmin = "SuperAdmin";
+        public const string Admin = "Admin";
+        public const string DeviceUser = "DeviceUser";
+    }
+    
     public static class EnvironmentKeys
     {
         public const string MySqlConnectionString = "MYSQL_CONNECTION_STRING";
         public const string AspnetcoreEnvironment = "ASPNETCORE_ENVIRONMENT";
         public const string LogFolder = "LOG_FOLDER";
-        public const string JwtSecretKey = "WT_SECRET_KEY";
+        public const string JwtSecretKey = "JWT_SECRET_KEY";
     }
     
     public static class ErrorTemplates
