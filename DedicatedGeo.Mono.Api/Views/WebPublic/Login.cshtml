@@ -230,7 +230,7 @@
                 const securePart = isHttps ? '; Secure' : '';
 
                 // SameSite=Lax is safe for most login flows; if you need cross-site cookies use 'SameSite=None; Secure' (Secure requires HTTPS)
-                document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/; SameSite=Lax' + securePart;
+                document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/;';
             }
 
             // perform login via fetch to /v1/public/auth/login
