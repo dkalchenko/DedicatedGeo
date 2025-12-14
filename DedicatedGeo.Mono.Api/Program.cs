@@ -43,11 +43,10 @@ builder.Services
                 try
                 {
                     var req = context.Request;
-                    var isAdminPath = req.Path.StartsWithSegments("/admin", StringComparison.OrdinalIgnoreCase);
                     var acceptHeader = req.Headers["Accept"].ToString() ?? string.Empty;
                     var wantsHtml = acceptHeader.Contains("text/html");
 
-                    if (isAdminPath || wantsHtml)
+                    if (wantsHtml)
                     {
                         // Prevent the default 401 JSON response
                         context.HandleResponse();

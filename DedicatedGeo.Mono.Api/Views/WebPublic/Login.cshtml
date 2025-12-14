@@ -151,44 +151,6 @@
     <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
 
     <script>
-        // Global fetch wrapper: on any fetch response with status 401 or 403, redirect to login.
-        // Guards: do not run on pages that include 'login' in the path (prevents redirect loop),
-        // and don't redirect if the failing request itself targets a login endpoint.
-        (function(){
-            if (typeof window === 'undefined') return;
-            try {
-                const path = (location && location.pathname) ? String(location.pathname).toLowerCase() : '';
-                // If we're rendering the login page, skip installing the wrapper to avoid loops
-                if (path.includes('login')) return;
-
-                const originalFetch = window.fetch && window.fetch.bind(window);
-                if (!originalFetch) return;
-
-                window.fetch = async function(input, init) {
-                    const resp = await originalFetch(input, init);
-                    try {
-                        const status = resp && resp.status;
-                        if (status === 401 || status === 403) {
-                            let reqUrl = '';
-                            try {
-                                reqUrl = (typeof input === 'string') ? input : (input && input.url) ? input.url : '';
-                                const resolvedPath = new URL(reqUrl, location.href).pathname.toLowerCase();
-                                if (resolvedPath.includes('login')) return resp; // don't redirect if request was for login
-                            } catch (e) {
-                                // ignore
-                            }
-
-                            const loginUrl = '/'
-                            setTimeout(() => { try { window.location.href = loginUrl; } catch (e) {} }, 50);
-                        }
-                    } catch (e) {}
-                    return resp;
-                };
-            } catch (e) {}
-        })();
-    </script>
-
-    <script>
         // Progressive enhancement: client-side validation, show/hide password, focus management
         (function(){
             const form = document.getElementById('loginForm');
