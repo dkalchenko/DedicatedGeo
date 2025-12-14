@@ -663,6 +663,8 @@
 
     // state
     let mapMarkers = [];
+    // New: mapping from stable point id -> { marker, id, idx, createdDate, createdText }
+    const mapMarkersById = {};
     let mapPath = null;
     let didInitialFit = false;
     let selectedMarkerIndex = null;
@@ -808,62 +810,140 @@
                 return;
             }
 
-            // Clear previous markers/path
-            clearMap();
-
+            // We'll reuse markers when possible instead of recreating every time.
             const latlngs = [];
             if (pointsContainer) pointsContainer.innerHTML = '';
 
-            // Build markers and mapping
+            const newIds = new Set();
             const markerMapping = [];
-            let markerIndex = 0;
-            pts.forEach(p => {
+
+            // Helper to obtain a stable id for a point
+            const getPointId = (p, fallbackIdx) => {
+                return (p.PointId ?? p.PointID ?? p.pointId ?? p.id ?? p.Id ?? p.Id ?? p.uid ?? null)
+                    || (p.Id ?? p.id ?? null)
+                    || (p.ExternalId ?? p.externalId ?? null)
+                    || (p.CreatedAt ?? p.createdAt ?? p.timestamp ?? p.time ?? null) && `${p.Latitude ?? p.latitude ?? p.lat}_${p.Longitude ?? p.longitude ?? p.lon}_${p.CreatedAt ?? p.createdAt ?? p.timestamp ?? fallbackIdx}`
+                    || (`pt_${fallbackIdx}`);
+            };
+
+            pts.forEach((p, i) => {
                 const lat = toNum(p.Latitude ?? p.latitude ?? p.lat ?? p.latDeg ?? p.lat_deg);
                 const lon = toNum(p.Longitude ?? p.longitude ?? p.lon ?? p.lonDeg ?? p.lon_deg);
                 if (lat == null || lon == null) return;
 
-                const myIdx = markerIndex++;
-                latlngs.push([lat, lon]);
+                const id = getPointId(p, i);
+                newIds.add(id);
 
-                const m = L.circleMarker([lat, lon], { radius: 5, color: '#1e88e5', fillColor: '#1e88e5', fillOpacity: 0.95 }).addTo(map);
                 const createdRaw = p.CreatedAt ?? p.createdAt ?? p.timestamp ?? p.time ?? null;
                 const createdDate = parseTimestamp(createdRaw);
                 const createdText = createdDate ? formatLocal(createdDate) : null;
-                m.bindPopup(`<div style="min-width:140px"><div><strong>Lat:</strong> ${lat}</div><div><strong>Lon:</strong> ${lon}</div>${createdDate ? `<div style='font-size:12px;color:#9aa4b2'>${formatLocal(createdDate)}</div>` : ''}</div>`);
-                mapMarkers.push(m);
-                m.on('click', () => { selectMarker(myIdx, true); });
 
-                markerMapping.push({ p, idx: myIdx, lat, lon, createdDate, createdText });
+                latlngs.push([lat, lon]);
+
+                if (mapMarkersById[id]) {
+                    // Update existing marker position and popup if changed
+                    const rec = mapMarkersById[id];
+                    try { rec.marker.setLatLng([lat, lon]); } catch (e) {}
+                    try { rec.marker.setStyle({ radius: 5, color: '#1e88e5', fillColor: '#1e88e5', fillOpacity: 0.95 }); } catch (e) {}
+                    try { rec.marker.bindPopup(`<div style="min-width:140px"><div><strong>Lat:</strong> ${lat}</div><div><strong>Lon:</strong> ${lon}</div>${createdDate ? `<div style='font-size:12px;color:#9aa4b2'>${formatLocal(createdDate)}</div>` : ''}</div>`); } catch (e) {}
+                    rec.p = p;
+                    rec.lat = lat; rec.lon = lon; rec.createdDate = createdDate; rec.createdText = createdText;
+                    markerMapping.push({ p, id, lat, lon, createdDate, createdText });
+                } else {
+                    // Create new marker
+                    const m = L.circleMarker([lat, lon], { radius: 5, color: '#1e88e5', fillColor: '#1e88e5', fillOpacity: 0.95 }).addTo(map);
+                    try { m.bindPopup(`<div style="min-width:140px"><div><strong>Lat:</strong> ${lat}</div><div><strong>Lon:</strong> ${lon}</div>${createdDate ? `<div style='font-size:12px;color:#9aa4b2'>${formatLocal(createdDate)}</div>` : ''}</div>`); } catch (e) {}
+                    mapMarkers.push(m);
+                    const idx = mapMarkers.length - 1;
+                    m.on('click', () => { selectMarker(idx, true); });
+                    mapMarkersById[id] = { marker: m, id, idx, p, lat, lon, createdDate, createdText };
+                    markerMapping.push({ p, id, idx, lat, lon, createdDate, createdText });
+                }
             });
 
-            // Sidebar list sorted newest-first
+            // Remove markers that are no longer present in the server response
+            Object.keys(mapMarkersById).forEach(existingId => {
+                if (!newIds.has(existingId)) {
+                    const rec = mapMarkersById[existingId];
+                    try { map.removeLayer(rec.marker); } catch (e) {}
+                    // mark slot as null; we'll rebuild compact array below
+                    mapMarkers[rec.idx] = null;
+                    delete mapMarkersById[existingId];
+                }
+            });
+
+            // Rebuild compact mapMarkers array and reassign indices on mapMarkersById and event handlers
+            const newMapMarkers = [];
+            const idToNewIdx = {};
+            Object.keys(mapMarkersById).forEach(idKey => {
+                const rec = mapMarkersById[idKey];
+                newMapMarkers.push(rec.marker);
+                const newIdx = newMapMarkers.length - 1;
+                idToNewIdx[idKey] = newIdx;
+            });
+            // Also include any newly created markers that were added to mapMarkers but not yet in mapMarkersById
+            mapMarkers.forEach(m => {
+                if (!m) return;
+                // If marker already in newMapMarkers, skip
+                if (newMapMarkers.indexOf(m) !== -1) return;
+                newMapMarkers.push(m);
+            });
+
+            // Reassign indices and click handlers
+            newMapMarkers.forEach((m, idx) => {
+                // find id for this marker
+                let foundId = null;
+                for (const k in mapMarkersById) {
+                    if (mapMarkersById[k].marker === m) { foundId = k; break; }
+                }
+                if (foundId) {
+                    mapMarkersById[foundId].idx = idx;
+                }
+                // replace click handler to use the new idx
+                try {
+                    m.off && m.off('click');
+                } catch (e) {}
+                try { m.on('click', () => { selectMarker(idx, true); }); } catch (e) {}
+            });
+
+            // compact mapMarkers
+            mapMarkers = newMapMarkers.slice();
+
+             // Sidebar list sorted newest-first
             const mappingForList = markerMapping.slice().sort((a,b) => {
-                const ta = a.createdDate ? a.createdDate.getTime() : 0;
-                const tb = b.createdDate ? b.createdDate.getTime() : 0;
-                return tb - ta;
-            });
+                 const ta = a.createdDate ? a.createdDate.getTime() : 0;
+                 const tb = b.createdDate ? b.createdDate.getTime() : 0;
+                 return tb - ta;
+             });
 
-            if (pointsContainer) {
-                pointsContainer.innerHTML = '';
-                mappingForList.forEach(item => {
-                    const { idx, lat, lon, createdText } = item;
-                    const entry = document.createElement('div');
-                    entry.className = 'point';
-                    entry.dataset.index = String(idx);
-                    entry.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700">${lat.toFixed(6)}, ${lon.toFixed(6)}</div><div style="font-size:11px;color:#9aa4b2">${createdText || '—'}</div></div>`;
-                    // Clicking a point in the sidebar should not close the sidebar — pass closeOnPan:false
-                    entry.addEventListener('click', () => { selectMarker(idx, true, { closeOnPan: false }); });
-                    pointsContainer.appendChild(entry);
-                });
-            }
+             if (pointsContainer) {
+                 pointsContainer.innerHTML = '';
+                 mappingForList.forEach(item => {
+                    const { id, idx, lat, lon, createdText } = item;
+                    // determine current index for this marker id
+                    const effectiveIdx = (id && mapMarkersById[id]) ? mapMarkersById[id].idx : (typeof idx === 'number' ? idx : null);
+                     const entry = document.createElement('div');
+                     entry.className = 'point';
+                     entry.dataset.index = String(effectiveIdx);
+                     entry.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700">${lat.toFixed(6)}, ${lon.toFixed(6)}</div><div style="font-size:11px;color:#9aa4b2">${createdText || '—'}</div></div>`;
+                     // Clicking a point in the sidebar should not close the sidebar — pass closeOnPan:false
+                     entry.addEventListener('click', () => { if (effectiveIdx != null) selectMarker(effectiveIdx, true, { closeOnPan: false }); });
+                     pointsContainer.appendChild(entry);
+                 });
+             }
 
             const pointsCountEl = document.getElementById('pointsCount'); if (pointsCountEl) pointsCountEl.innerText = String(mapMarkers.length);
 
-            // Draw path and do initial view logic
+            // Draw or update path and do initial view logic
             if (latlngs.length) {
-                mapPath = L.polyline(latlngs, { color: 'blue' }).addTo(map);
+                if (mapPath) {
+                    try { mapPath.setLatLngs(latlngs); } catch (e) { try { map.removeLayer(mapPath); mapPath = null; } catch(e) {} }
+                    if (!mapPath) mapPath = L.polyline(latlngs, { color: 'blue' }).addTo(map);
+                } else {
+                    mapPath = L.polyline(latlngs, { color: 'blue' }).addTo(map);
+                }
 
-                if (!didInitialFit) {
+                 if (!didInitialFit) {
                     try {
                         if (focusLastOnNextLoad) {
                             // center on newest point (by createdDate) if available
