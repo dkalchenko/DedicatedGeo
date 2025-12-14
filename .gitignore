@@ -25,7 +25,6 @@ _UpgradeReport_Files/
 ###############
 bin/
 obj/
-BuildHost*/
 TestResults/
 ###################
 # Web publish log #

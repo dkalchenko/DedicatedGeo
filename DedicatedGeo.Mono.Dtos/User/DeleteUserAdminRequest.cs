@@ -1,6 +1,8 @@
-﻿namespace DedicatedGeo.Mono.Dtos.User;
+﻿using MediatR;
 
-public class DeleteUserAdminRequest
+namespace DedicatedGeo.Mono.Dtos.User;
+
+public class DeleteUserAdminRequest: IRequest
 {
-    public Guid UserId { get; set; }
+    public string UserId { get; set; }
 }

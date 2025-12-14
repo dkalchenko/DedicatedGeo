@@ -1,4 +1,5 @@
 ﻿using DedicatedGeo.Mono.Common;
+using DedicatedGeo.Mono.Core.Abstractions.Device.Services;
 using DedicatedGeo.Mono.Dal.Abstractions;
 using DedicatedGeo.Mono.Dtos.Device;
 using DedicatedGeo.Mono.Entities.Device;
@@ -12,22 +13,27 @@ namespace DedicatedGeo.Mono.Core.Device;
 public class PutDeviceStatusS2DRequestHandler: IRequestHandler<PutDeviceStatusesS2DRequest>
 {
     private readonly IDatabaseRepository _repository;
-    private readonly ISender _sender;
+    private readonly IDeviceService _deviceService;
     private readonly IPublisher _publisher;
 
-    public PutDeviceStatusS2DRequestHandler(IDatabaseRepository repository, ISender sender, IPublisher publisher)
+    public PutDeviceStatusS2DRequestHandler(IDatabaseRepository repository, IDeviceService deviceService, IPublisher publisher)
     {
         _repository = repository.ThrowIfNull();
-        _sender = sender.ThrowIfNull();
+        _deviceService = deviceService.ThrowIfNull();
         _publisher = publisher.ThrowIfNull();
     }
     
     public async Task Handle(PutDeviceStatusesS2DRequest request, CancellationToken cancellationToken)
     {
-        var device = await _sender.Send(new GetDeviceByIMEIInternalRequest
+        var device = await _deviceService.GetDeviceByIMEIAsync(request.DeviceId, cancellationToken);
+
+        if (device is null)
         {
-            DeviceId = request.DeviceId
-        }, cancellationToken);
+            throw OwnConstants.ErrorTemplates
+                .ResourceNotFound
+                .FormatMessage("device")
+                .GetException();
+        }
         
         var deviceStatus = await _repository.DeviceStatuses.FirstOrDefaultAsync(x => x.DeviceId == device.DeviceId, cancellationToken: cancellationToken);
 

@@ -1,6 +1,11 @@
-﻿namespace DedicatedGeo.Mono.Dtos.Device.DeviceAssignment;
+﻿using DedicatedGeo.Mono.Dtos.Device.Admin.DeviceAssignment;
+using MediatR;
 
-public class GetDeviceAssignmentsAdminRequest
+namespace DedicatedGeo.Mono.Dtos.Device.DeviceAssignment;
+
+public class GetDeviceAssignmentsAdminRequest: IRequest<GetDeviceAssignmentsAdminResponse>
 {
-    
+    public string DeviceId { get; set; }
+    public int Offset { get; set; }
+    public int Limit { get; set; }
 }

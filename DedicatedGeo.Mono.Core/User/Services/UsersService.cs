@@ -28,7 +28,26 @@ public class UsersService: IUsersServices
         {
             Email =  user.Email,
             Password = user.Password,
-            UserId = user.UserId
+            UserId = user.UserId,
+            Role =  user.Role,
+        };
+    }
+    
+    public async Task<UserEntity?> GetUserById(Guid userId, CancellationToken cancellationToken)
+    {
+        var user = await _databaseRepository.Users.FirstOrDefaultAsync(x => x.UserId == userId, cancellationToken: cancellationToken);
+
+        if (user is null)
+        {
+            return null;
+        }
+        
+        return new UserEntity
+        {
+            Email =  user.Email,
+            Password = user.Password,
+            UserId = user.UserId,
+            Role =  user.Role,
         };
     }
 }

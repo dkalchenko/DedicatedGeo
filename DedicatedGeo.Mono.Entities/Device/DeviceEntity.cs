@@ -1,6 +1,6 @@
 ﻿namespace DedicatedGeo.Mono.Entities.Device;
 
-public class GetDeviceInternalResponse
+public class DeviceEntity
 {
     public Guid DeviceId { get; set; }
 }

@@ -30,18 +30,38 @@ namespace DedicatedGeo.Mono.Dal.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("QuarantineUntil")
+                        .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
                     b.HasKey("DeviceId");
 
                     b.HasIndex("IMEI");
 
-                    b.HasIndex("QuarantineUntil");
-
                     b.ToTable("Devices");
+                });
+
+            modelBuilder.Entity("DedicatedGeo.Mono.Models.Device.DeviceAssignment", b =>
+                {
+                    b.Property<Guid>("DeviceAssignmentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("DeviceAssignmentId");
+
+                    b.HasIndex("DeviceId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("DeviceAssignments");
                 });
 
             modelBuilder.Entity("DedicatedGeo.Mono.Models.Device.DeviceStatus", b =>
@@ -153,10 +173,17 @@ namespace DedicatedGeo.Mono.Dal.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
+                        .HasMaxLength(256)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Password")
                         .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.HasKey("UserId");
@@ -167,11 +194,29 @@ namespace DedicatedGeo.Mono.Dal.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("DedicatedGeo.Mono.Models.Device.DeviceAssignment", b =>
+                {
+                    b.HasOne("DedicatedGeo.Mono.Models.Device.Device", null)
+                        .WithMany("DeviceAssignments")
+                        .HasForeignKey("DeviceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("DedicatedGeo.Mono.Models.Device.DeviceStatus", b =>
                 {
                     b.HasOne("DedicatedGeo.Mono.Models.Device.Device", null)
                         .WithOne("DeviceStatus")
                         .HasForeignKey("DedicatedGeo.Mono.Models.Device.DeviceStatus", "DeviceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DedicatedGeo.Mono.Models.Device.DeviceStatusHistory", b =>
+                {
+                    b.HasOne("DedicatedGeo.Mono.Models.Device.Device", null)
+                        .WithMany("DeviceStatusHistories")
+                        .HasForeignKey("DeviceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -187,8 +232,12 @@ namespace DedicatedGeo.Mono.Dal.Migrations
 
             modelBuilder.Entity("DedicatedGeo.Mono.Models.Device.Device", b =>
                 {
+                    b.Navigation("DeviceAssignments");
+
                     b.Navigation("DeviceStatus")
                         .IsRequired();
+
+                    b.Navigation("DeviceStatusHistories");
 
                     b.Navigation("LocationPoints");
                 });

@@ -4,5 +4,5 @@ namespace DedicatedGeo.Mono.Dtos.User;
 
 public class GetUserAdminRequest: IRequest<UserAdminResponse>
 {
-    public Guid UserId { get; set; }
+    public string UserId { get; set; }
 }

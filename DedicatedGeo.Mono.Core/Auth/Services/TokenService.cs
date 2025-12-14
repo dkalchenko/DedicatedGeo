@@ -27,7 +27,7 @@ public class TokenService : ITokenService
 
     public JwtToken GenerateToken(IEnumerable<Claim> claims, bool includeRefreshToken)
     {
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         var tokenTime = now.Add(TimeSpan.FromMinutes(_settings.LifeTime));
         var refreshTokenTime = now.Add(TimeSpan.FromMinutes(_settings.LifeTime * 2));
 

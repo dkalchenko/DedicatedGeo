@@ -9,7 +9,6 @@ public class DeviceConfiguration : IEntityTypeConfiguration<Device>
     {
         builder.HasKey(d => d.DeviceId);
         builder.HasIndex(d => d.IMEI);
-        builder.HasIndex(d => d.QuarantineUntil);
         
         builder.Property(d => d.IMEI)
             .HasMaxLength(16)
@@ -25,6 +24,16 @@ public class DeviceConfiguration : IEntityTypeConfiguration<Device>
             .OnDelete(DeleteBehavior.Cascade);
         
         builder.HasMany(x => x.LocationPoints)
+            .WithOne()
+            .HasForeignKey(x => x.DeviceId)
+            .OnDelete(DeleteBehavior.Cascade);
+        
+        builder.HasMany(x => x.DeviceStatusHistories)
+            .WithOne()
+            .HasForeignKey(x => x.DeviceId)
+            .OnDelete(DeleteBehavior.Cascade);
+        
+        builder.HasMany(x => x.DeviceAssignments)
             .WithOne()
             .HasForeignKey(x => x.DeviceId)
             .OnDelete(DeleteBehavior.Cascade);

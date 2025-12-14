@@ -1,5 +1,7 @@
 ﻿using DedicatedGeo.Mono.Common;
 using DedicatedGeo.Mono.Dtos.Device;
+using DedicatedGeo.Mono.Dtos.Device.Admin.DeviceAssignment;
+using DedicatedGeo.Mono.Dtos.Device.DeviceAssignment;
 using DedicatedGeo.Mono.Dtos.Location;
 using HybridModelBinding;
 using MediatR;
@@ -18,16 +20,11 @@ public class DeviceAdminController: Controller
         _sender = sender.ThrowIfNull();
     }
     
+    // Devices
+    
     [HttpGet]
     [Authorize(Roles = $"{OwnConstants.Roles.SuperAdmin},{OwnConstants.Roles.Admin},{OwnConstants.Roles.DeviceUser}")]
     public async Task<IActionResult> GetDevices([FromHybrid] GetDevicesAdminRequest request)
-    {
-        return Ok(await _sender.Send(request));
-    }
-    
-    [HttpGet]
-    [Authorize(Roles = $"{OwnConstants.Roles.SuperAdmin},{OwnConstants.Roles.Admin}")]
-    public async Task<IActionResult> GetDevice([FromHybrid] GetDeviceAdminRequest request)
     {
         return Ok(await _sender.Send(request));
     }
@@ -54,6 +51,8 @@ public class DeviceAdminController: Controller
         return Ok();
     }
     
+    // Statuses
+    
     [HttpGet("{deviceId}/statuses")]
     [Authorize(Roles = $"{OwnConstants.Roles.SuperAdmin},{OwnConstants.Roles.Admin},{OwnConstants.Roles.DeviceUser}")]
     public async Task<IActionResult> GetStatuses([FromHybrid] GetDeviceStatusesAdminRequest request)
@@ -68,6 +67,8 @@ public class DeviceAdminController: Controller
         return Ok(await _sender.Send(request));
     }
     
+    // Location Points
+    
     [HttpGet("{deviceId}/location/points")]
     [Authorize(Roles = $"{OwnConstants.Roles.SuperAdmin},{OwnConstants.Roles.Admin},{OwnConstants.Roles.DeviceUser}")]
     public async Task<IActionResult> GetPoints([FromHybrid] GetLocationPointsAdminRequest request)
@@ -78,6 +79,30 @@ public class DeviceAdminController: Controller
     [HttpDelete("{deviceId}/location/points")]
     [Authorize(Roles = $"{OwnConstants.Roles.SuperAdmin}")]
     public async Task<IActionResult> DeletePoints([FromHybrid] DeleteLocationPointsAdminRequest request)
+    {
+        await _sender.Send(request);
+        return Ok();
+    }
+    
+    // Device Assignments
+    
+    [HttpGet("{deviceId}/assignments")]
+    [Authorize(Roles = $"{OwnConstants.Roles.SuperAdmin},{OwnConstants.Roles.Admin}")]
+    public async Task<IActionResult> GetDeviceAssignments([FromHybrid] GetDeviceAssignmentsAdminRequest request)
+    {
+        return Ok(await _sender.Send(request));
+    }
+    
+    [HttpPost("{deviceId}/assignments")]
+    [Authorize(Roles = $"{OwnConstants.Roles.SuperAdmin},{OwnConstants.Roles.Admin}")]
+    public async Task<IActionResult> PostDeviceAssignment([FromHybrid] PostDeviceAssignmentAdminRequest request)
+    {
+        return Ok(await _sender.Send(request));
+    }
+    
+    [HttpDelete("{deviceId}/assignments/{deviceAssignmentId}")]
+    [Authorize(Roles = $"{OwnConstants.Roles.SuperAdmin},{OwnConstants.Roles.Admin}")]
+    public async Task<IActionResult> DeleteDeviceAssignment([FromHybrid] DeleteDeviceAssignmentAdminRequest request)
     {
         await _sender.Send(request);
         return Ok();

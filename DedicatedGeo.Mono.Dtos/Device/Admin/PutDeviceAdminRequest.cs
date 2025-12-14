@@ -1,7 +1,9 @@
-﻿namespace DedicatedGeo.Mono.Dtos.Device;
+﻿using MediatR;
 
-public class PutDeviceAdminRequest
+namespace DedicatedGeo.Mono.Dtos.Device;
+
+public class PutDeviceAdminRequest: IRequest<GetDeviceAdminResponse>
 {
-    public string IMEI { get; set; }
+    public Guid DeviceId { get; set; }
     public string DeviceName { get; set; }
 }

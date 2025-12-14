@@ -1,4 +1,5 @@
 ﻿using DedicatedGeo.Mono.Common;
+using DedicatedGeo.Mono.Core.Abstractions.Device.Services;
 using DedicatedGeo.Mono.Core.Extensions;
 using DedicatedGeo.Mono.Dal.Abstractions;
 using DedicatedGeo.Mono.Dtos.Location;
@@ -14,20 +15,25 @@ public class PostLocationPointsS2DRequestHandler: IRequestHandler<PostLocationPo
 {
 
     private readonly IDatabaseRepository _repository;
-    private readonly ISender _sender;
+    private readonly IDeviceService _deviceService;
 
-    public PostLocationPointsS2DRequestHandler(IDatabaseRepository repository, ISender sender)
+    public PostLocationPointsS2DRequestHandler(IDatabaseRepository repository, IDeviceService deviceService)
     {
         _repository = repository.ThrowIfNull();
-        _sender = sender.ThrowIfNull();
+        _deviceService = deviceService.ThrowIfNull();
     }
     
     public async Task Handle(PostLocationPointsS2DRequest request, CancellationToken cancellationToken)
     {
-        var device = await _sender.Send(new GetDeviceByIMEIInternalRequest
+        var device = await _deviceService.GetDeviceByIMEIAsync(request.DeviceId, cancellationToken);
+
+        if (device is null)
         {
-            DeviceId = request.DeviceId
-        }, cancellationToken);
+            throw OwnConstants.ErrorTemplates
+                .ResourceNotFound
+                .FormatMessage("device")
+                .GetException();
+        }
         
         var locationPoints = request.LocationPoints.Select(
             locationPoint => new LocationPoint

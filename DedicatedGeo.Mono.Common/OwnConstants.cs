@@ -58,9 +58,19 @@ public static class OwnConstants
             "The requested {Resource} was not found.",
             HttpStatusCode.NotFound
         );
+        public static ExceptionMaker ResourceAlreadyExists => new(
+            "Resource already exists.",
+            HttpStatusCode.BadRequest
+        );
         
         public static ExceptionMaker TokenIsNotValid => new(
             "Token is not valid. {0}",
+            HttpStatusCode.Forbidden
+        );
+
+        
+        public static ExceptionMaker ResourceIsForbidden => new(
+            "You cannot use this resource. {0}",
             HttpStatusCode.Forbidden
         );
 

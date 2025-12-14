@@ -1,5 +1,7 @@
 ﻿using DedicatedGeo.Mono.Common;
 using DedicatedGeo.Mono.Common.Extensions;
+using DedicatedGeo.Mono.Core.Abstractions.Device.Services;
+using DedicatedGeo.Mono.Core.Abstractions.DeviceAssignment;
 using DedicatedGeo.Mono.Dal.Abstractions;
 using DedicatedGeo.Mono.Dtos.Location;
 using DedicatedGeo.Mono.Entities.Device;
@@ -11,29 +13,34 @@ namespace DedicatedGeo.Mono.Core.Location;
 public class DeleteLocationPointsAdminRequestHandler: IRequestHandler<DeleteLocationPointsAdminRequest>
 {
     private readonly IDatabaseRepository _repository;
-    private readonly ISender _sender;
+    private readonly IDeviceService _deviceService;
+    private readonly IDeviceAssignmentService _deviceAssignmentService;
 
-    public DeleteLocationPointsAdminRequestHandler(IDatabaseRepository repository, ISender sender)
+    public DeleteLocationPointsAdminRequestHandler(IDatabaseRepository repository, IDeviceService deviceService, IDeviceAssignmentService deviceAssignmentService)
     {
         _repository = repository.ThrowIfNull();
-        _sender = sender.ThrowIfNull();
+        _deviceService = deviceService.ThrowIfNull();
+        _deviceAssignmentService = deviceAssignmentService.ThrowIfNull();
     }
     
     public async Task Handle(DeleteLocationPointsAdminRequest request, CancellationToken cancellationToken)
     {
-        var device = await _sender.Send(new GetDeviceInternalRequest
-        {
-            DeviceId = request.DeviceId
-        }, cancellationToken);
+        var deviceId = request.DeviceId.ToGuid();
+        var device = await _deviceService.GetDeviceByIdAsync(deviceId, cancellationToken);
 
         if (device is null)
         {
             throw OwnConstants.ErrorTemplates.ResourceNotFound.FormatMessage("device").GetException();
         }
+
+        if (!await _deviceAssignmentService.IsDeviceAssignedToUserAsync(deviceId, request.UserId.ToGuid(), cancellationToken))
+        {
+            throw OwnConstants.ErrorTemplates.ResourceIsForbidden.GetException();
+        }
         
         var locationPointIds = request.LocationPointIds?.Split(',').Select(Guid.Parse).ToList();
         
-        var query = _repository.LocationPoints.Where(x => x.DeviceId == request.DeviceId.ToGuid());
+        var query = _repository.LocationPoints.Where(x => x.DeviceId == deviceId);
 
         if (locationPointIds is not null)
         {

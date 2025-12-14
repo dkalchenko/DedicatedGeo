@@ -1,6 +1,8 @@
-﻿namespace DedicatedGeo.Mono.Dtos.Device.Admin.DeviceAssignment;
+﻿using MediatR;
 
-public class DeleteDeviceAssignmentAdminRequest
+namespace DedicatedGeo.Mono.Dtos.Device.Admin.DeviceAssignment;
+
+public class DeleteDeviceAssignmentAdminRequest: IRequest
 {
-    
+    public string DeviceAssignmentId { get; set; }
 }
