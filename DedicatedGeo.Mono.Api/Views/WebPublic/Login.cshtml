@@ -224,8 +224,13 @@
                     date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
                     expires = '; expires=' + date.toUTCString();
                 }
-                // Using SameSite=Lax and Secure. Secure requires HTTPS; on HTTP the cookie will still be set but the Secure flag will be ignored by some browsers.
-                document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/; SameSite=Lax; Secure';
+
+                const isHttps = (typeof location !== 'undefined') && location.protocol === 'https:';
+                // don't add Secure on http; in production you should serve HTTPS and set Secure + HttpOnly server-side
+                const securePart = isHttps ? '; Secure' : '';
+
+                // SameSite=Lax is safe for most login flows; if you need cross-site cookies use 'SameSite=None; Secure' (Secure requires HTTPS)
+                document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/; SameSite=Lax' + securePart;
             }
 
             // perform login via fetch to /v1/public/auth/login
