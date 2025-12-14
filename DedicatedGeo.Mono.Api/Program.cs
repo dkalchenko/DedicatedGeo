@@ -36,29 +36,6 @@ builder.Services
                     context.Token = token;
                 }
                 return Task.CompletedTask;
-            },
-
-            OnChallenge = context =>
-            {
-                try
-                {
-                    var req = context.Request;
-                    var acceptHeader = req.Headers["Accept"].ToString() ?? string.Empty;
-                    var wantsHtml = acceptHeader.Contains("text/html");
-
-                    if (wantsHtml)
-                    {
-                        // Prevent the default 401 JSON response
-                        context.HandleResponse();
-                        context.Response.Redirect("/");
-                    }
-                }
-                catch
-                {
-                    // If anything goes wrong here, don't throw — let the default behavior happen.
-                }
-
-                return Task.CompletedTask;
             }
         };
     });
