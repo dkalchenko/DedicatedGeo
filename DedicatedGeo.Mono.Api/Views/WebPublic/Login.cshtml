@@ -252,8 +252,10 @@
                         // success
                         let data;
                         try{ data = await resp.json(); } catch(e){ data = null; }
+                        console.log(data)
                         const token = data && (data.token || data.Token) ? (data.token || data.Token) : null;
                         if (token){
+                            localStorage.setItem('AuthToken', token);
                             try{ setCookie('AuthToken', token, 7); } catch(e){ console.error('Failed to save token in cookie', e); }
                             // redirect to admin map
                             window.location.href = '/admin/map';
