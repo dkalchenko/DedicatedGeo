@@ -7,7 +7,6 @@ public static class OwnConstants
 {
 
     public const int UpdateDeviceStatusBackgroundDelayInMillisecond = 20000;
-    public const int DeviceIsInactivityStatusAfterInMinutes = 2;
     
     public static class DeviceStatusNames
     {
@@ -40,6 +39,12 @@ public static class OwnConstants
         public const string SuperAdmin = "SuperAdmin";
         public const string Admin = "Admin";
         public const string DeviceUser = "DeviceUser";
+        public static readonly IEnumerable<string> AllRoles =
+        [
+            SuperAdmin,
+            Admin,
+            DeviceUser
+        ];
     }
     
     public static class EnvironmentKeys

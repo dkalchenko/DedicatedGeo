@@ -6,7 +6,7 @@ namespace DedicatedGeo.Mono.Dtos.Location;
 
 public class GetLocationPointsAdminRequest: IRequest<GetLocationPointsAdminResponse>
 {
-    [HybridBindProperty(Source.Route, OwnConstants.Claims.UserIdClaim)]
+    [HybridBindProperty(Source.Claim, OwnConstants.Claims.UserIdClaim)]
     public string UserId { get; set; }
     public string DeviceId { get; set; }
     public DateTime From { get; set; }

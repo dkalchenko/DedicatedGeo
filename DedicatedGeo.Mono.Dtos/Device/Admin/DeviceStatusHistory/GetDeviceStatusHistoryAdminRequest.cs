@@ -7,7 +7,7 @@ namespace DedicatedGeo.Mono.Dtos.Device;
 public class GetDeviceStatusHistoryAdminRequest: IRequest<GetDeviceStatusHistoryAdminResponse>
 {
     
-    [HybridBindProperty(Source.Route, OwnConstants.Claims.UserIdClaim)]
+    [HybridBindProperty(Source.Claim, OwnConstants.Claims.UserIdClaim)]
     public string UserId { get; set; }
     public string DeviceId { get; set; }
     public string StatusName { get; set; }

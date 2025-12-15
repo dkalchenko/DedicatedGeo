@@ -34,7 +34,9 @@ public class PostAuthLoginPublicRequestHandler: IRequestHandler<PostAuthLoginPub
         var result = await _usersService.GetUserByEmailAsync(request.Email, cancellationToken);
         if (result is null || !request.Password.VerifyPasswordHash(result.Password))
             throw OwnConstants.ErrorTemplates.LoginFailedException.GetException();
+        
         claims.Add(new Claim(OwnConstants.Claims.UserIdClaim, result.UserId.ToString()));
+        claims.Add(new Claim(ClaimsIdentity.DefaultRoleClaimType, result.Role));
 
         var token = _tokenService.GenerateToken(claims, false);
 

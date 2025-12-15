@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DedicatedGeo.Mono.Api.Controllers.User;
 
 [Route("/v1/admin/users")]
-[Authorize(Roles = $"{OwnConstants.Roles.SuperAdmin}")]
+//[Authorize(Roles = $"{OwnConstants.Roles.SuperAdmin}")]
 public class UserAdminController: Controller
 {
     private readonly ISender _sender;
@@ -26,7 +26,7 @@ public class UserAdminController: Controller
     }
     
     
-    [HttpPut]
+    [HttpPut("{userId}")]
     public async Task<IActionResult> PutUser([FromHybrid] PutUserAdminRequest request)
     {
         await _sender.Send(request);

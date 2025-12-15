@@ -1,3 +1,4 @@
+using DedicatedGeo.Mono.Common;
 using DedicatedGeo.Mono.Dtos.User;
 using FluentValidation;
 
@@ -9,6 +10,6 @@ public class PostUserAdminRequestValidator: AbstractValidator<PostUserAdminReque
     {
         RuleFor(x => x.Email).NotEmpty();
         RuleFor(x => x.Password).NotEmpty();
-        RuleFor(x => x.Role).NotEmpty();
+        RuleFor(x => x.Role).NotEmpty().Must(x => OwnConstants.Roles.AllRoles.Contains(x));
     }
 }
