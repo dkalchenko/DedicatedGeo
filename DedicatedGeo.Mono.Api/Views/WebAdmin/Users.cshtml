@@ -50,7 +50,27 @@
         .btn-danger{ background: linear-gradient(180deg,#ef4444,#c81b1b); color:white; padding:8px 10px; border-radius:8px; border:none; cursor:pointer; font-weight:600; }
 
         .pagination{ display:flex; gap:8px; align-items:center; }
-        .page-input{ padding:6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); background:transparent; color:#e6eef8; }
+        /* Page size select: make the native select visually match the app's styled controls
+           Use appearance: none and background caret so it looks like the custom selects. */
+        .page-input{
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+            padding:6px 36px 6px 8px; /* room on the right for a caret */
+            border-radius:8px; border:1px solid rgba(255,255,255,0.03);
+            background-image: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03)),
+                              linear-gradient(45deg, transparent 50%, rgba(255,255,255,0.25) 50%),
+                              linear-gradient(135deg, rgba(255,255,255,0.25) 50%, transparent 50%);
+            background-position: left top, calc(100% - 16px) calc(1em + 2px), calc(100% - 12px) calc(1em + 2px);
+            background-size: auto, .5em .5em, .5em .5em;
+            background-repeat: no-repeat;
+            background-color: transparent;
+            color:#e6eef8; cursor:pointer; box-sizing:border-box;
+        }
+        /* Small vendor tweak to hide the native dropdown arrow in IE/Edge */
+        .page-input::-ms-expand{ display:none; }
+        /* Focus state to match other controls */
+        .page-input:focus{ outline:2px solid rgba(90,179,255,0.12); box-shadow: 0 6px 18px rgba(90,179,255,0.04); }
+        /* Style the option elements in the dropdown so they match the page background when possible */
+        .page-input option{ background: linear-gradient(180deg, rgba(11,18,28,0.98), rgba(6,10,16,0.95)); color:#e6eef8; padding:6px 8px; }
 
         /* Modal (create/edit) */
         .modal-backdrop{ position:fixed; inset:0; background: rgba(2,6,23,0.6); display:none; align-items:center; justify-content:center; z-index:1400; }
@@ -101,6 +121,16 @@
         .role-option:focus{ outline:2px solid rgba(90,179,255,0.12); }
         .role-option .role-badge{ display:inline-block; }
 
+        /* Custom page-size selector visuals (small version of the role selector) */
+        .page-select-wrap{ position:relative; display:flex; align-items:center; gap:8px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03)); border:1px solid rgba(255,255,255,0.04); padding:6px 8px; border-radius:8px; cursor:pointer; min-width:90px; box-sizing:border-box; }
+        .page-select-value{ color:#e6eef8; font-weight:600; }
+        .page-select-value::after{ content: ''; display:inline-block; width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-top:7px solid rgba(255,255,255,0.7); margin-left:8px; transform:translateY(1px); }
+        .page-options{ position:absolute; top:calc(100% + 8px); left:0; min-width:100%; background:linear-gradient(180deg, rgba(11,18,28,0.98), rgba(6,10,16,0.95)); border:1px solid rgba(255,255,255,0.04); padding:6px; border-radius:8px; display:none; z-index:1500; box-shadow:0 18px 60px rgba(2,6,23,0.6); box-sizing:border-box; }
+        .page-options.open{ display:block; }
+        .page-option{ display:block; width:100%; text-align:left; background:transparent; border:none; padding:6px 8px; border-radius:8px; cursor:pointer; color:#e6eef8; }
+        .page-option:hover{ background: rgba(255,255,255,0.02); }
+        .page-option:focus{ outline:2px solid rgba(90,179,255,0.12); }
+
         @@media (max-width:720px){ .card{ width:94vw; margin-top:18px; } table.users thead{ display:none; } table.users tbody td{ display:block; width:100%; } }
  
     </style>
@@ -145,12 +175,23 @@
                 </div>
 
                 <div style="display:flex;align-items:center;gap:8px;">
-                    <label style="color:#9aa4b2;font-size:13px;">Page size</label>
-                    <select id="pageSize" class="page-input">
+                    <label id="pageSizeLabel" style="color:#9aa4b2;font-size:13px;">Page size</label>
+                    <!-- Hidden native select retained for accessibility/semantics; visual UI below mirrors it -->
+                    <select id="pageSize" class="page-input" aria-hidden="true" style="display:none;">
                         <option value="10">10</option>
                         <option value="25">25</option>
                         <option value="50">50</option>
                     </select>
+
+                    <!-- Custom visual page-size selector to match app styling -->
+                    <div class="page-select-wrap" id="pageSizeWrap" tabindex="0" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="pageSizeLabel">
+                        <div class="page-select-value" id="pageSizeDisplay">10</div>
+                        <div class="page-options" id="pageSizeOptions" role="listbox" tabindex="-1">
+                            <button type="button" class="page-option" data-value="10">10</button>
+                            <button type="button" class="page-option" data-value="25">25</button>
+                            <button type="button" class="page-option" data-value="50">50</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -257,6 +298,12 @@
             const roleDisplay = document.getElementById('roleDisplay');
             const roleOptionButtons = Array.from(document.querySelectorAll('.role-option'));
 
+            // Custom page size selector elements
+            const pageSizeWrap = document.getElementById('pageSizeWrap');
+            const pageSizeOptions = document.getElementById('pageSizeOptions');
+            const pageSizeDisplay = document.getElementById('pageSizeDisplay');
+            const pageOptionButtons = Array.from(document.querySelectorAll('.page-option'));
+
             // Helpers to sync hidden select and the custom UI
             function updateRoleDisplay(){
                  const val = roleEl.value || 'DeviceUser';
@@ -266,6 +313,11 @@
                  // update aria-expanded attribute
                  if (roleSelectWrap) roleSelectWrap.setAttribute('aria-expanded', roleOptions.classList.contains('open'));
              }
+
+            function updatePageSizeDisplay(){
+                try { pageSizeDisplay.innerText = pageSizeEl.value || '10'; } catch (e) {}
+                if (pageSizeWrap) pageSizeWrap.setAttribute('aria-expanded', pageSizeOptions.classList.contains('open'));
+            }
 
             // Open/close helpers for the custom role options. Use a guard flag so we only restore
             // focus to the selector when the options were opened by the user (avoids unexpected focus jumps).
@@ -287,8 +339,20 @@
                 roleOptionsShouldRestoreFocus = false;
             }
 
+            // Open/close helpers for the custom page size options
+            function openPageOptions(){
+                pageSizeOptions.classList.add('open');
+                if (pageSizeWrap) pageSizeWrap.setAttribute('aria-expanded','true');
+                try { pageSizeOptions.focus(); } catch (e) {}
+            }
+            function closePageOptions(){
+                pageSizeOptions.classList.remove('open');
+                if (pageSizeWrap) pageSizeWrap.setAttribute('aria-expanded','false');
+                try { pageSizeWrap.focus(); } catch (e) {}
+            }
+
             // Wire interactions
-            if (roleSelectWrap){
+             if (roleSelectWrap){
                 roleSelectWrap.addEventListener('click', (e)=>{
                     e.stopPropagation(); if (roleOptions.classList.contains('open')) closeRoleOptions(); else openRoleOptions();
                 });
@@ -315,8 +379,34 @@
                 });
             });
 
+            // Page size custom selector wiring
+            if (pageSizeWrap){
+                pageSizeWrap.addEventListener('click', (e)=>{ e.stopPropagation(); if (pageSizeOptions.classList.contains('open')) closePageOptions(); else openPageOptions(); });
+                pageSizeWrap.addEventListener('keydown', (e)=>{
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (pageSizeOptions.classList.contains('open')) closePageOptions(); else openPageOptions(); }
+                    if (e.key === 'ArrowDown'){ e.preventDefault(); openPageOptions(); const first = pageOptionButtons[0]; if (first) first.focus(); }
+                });
+            }
+
+            pageOptionButtons.forEach(btn => {
+                btn.addEventListener('click', ()=>{
+                    const v = btn.getAttribute('data-value');
+                    if (v){ pageSizeEl.value = v; updatePageSizeDisplay(); }
+                    closePageOptions();
+                    // reflect change
+                    offset = 0; fetchUsers();
+                });
+                btn.addEventListener('keydown', (e)=>{
+                    const idx = pageOptionButtons.indexOf(btn);
+                    if (e.key === 'ArrowDown'){ e.preventDefault(); const next = pageOptionButtons[idx+1]; if (next) next.focus(); }
+                    if (e.key === 'ArrowUp'){ e.preventDefault(); const prev = pageOptionButtons[idx-1]; if (prev) prev.focus(); }
+                    if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); btn.click(); }
+                });
+            });
+
             // close options when clicking outside
             document.addEventListener('click', (e)=>{ if (!roleSelectWrap) return; if (!roleSelectWrap.contains(e.target)) closeRoleOptions(); });
+            document.addEventListener('click', (e)=>{ if (!pageSizeWrap) return; if (!pageSizeWrap.contains(e.target)) closePageOptions(); });
 
             // ensure display reflects underlying value when modal opens
             // The openModal function below calls updateRoleDisplay when preparing the modal; also initialize the display now.
