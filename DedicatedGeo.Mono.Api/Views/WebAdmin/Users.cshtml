@@ -70,6 +70,37 @@
         .spinner{ width:28px; height:28px; border-radius:999px; border:3px solid rgba(255,255,255,0.06); border-top-color:#5ab3ff; animation:spin 1s linear infinite; }
         @@keyframes spin{ to { transform:rotate(360deg); } }
 
+        /* Custom select style to match page design */
+        .select-role{
+            -webkit-appearance: none; -moz-appearance: none; appearance: none;
+            padding-right: 36px; /* room for a custom arrow */
+            background-image: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03)),
+                              linear-gradient(45deg, transparent 50%, rgba(255,255,255,0.25) 50%),
+                              linear-gradient(135deg, rgba(255,255,255,0.25) 50%, transparent 50%);
+            background-position: calc(100% - 12px) calc(1em + 2px), calc(100% - 16px) calc(1em + 2px), calc(100% - 12px) calc(1em + 2px);
+            background-size: 1em 1em, .5em .5em, .5em .5em;
+            background-repeat: no-repeat;
+            cursor: pointer;
+        }
+
+        /* Role badge styles for table display */
+        .role-badge{ display:inline-block; padding:6px 10px; border-radius:999px; font-weight:700; font-size:13px; color:#e6eef8; }
+        .role-superadmin{ background: linear-gradient(90deg,#7c5cff,#b06cff); color:white; }
+        .role-admin{ background: linear-gradient(90deg,#5ab3ff,#2db5ff); color:#012; }
+        .role-deviceuser{ background: linear-gradient(90deg,#2dd4bf,#34d399); color:#012; }
+
+        /* Custom role selector (replaces visual select options) */
+        .role-select-wrap{ position:relative; display:flex; align-items:center; gap:8px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03)); border:1px solid rgba(255,255,255,0.04); padding:8px 10px; border-radius:10px; cursor:pointer; min-width:220px; box-sizing:border-box; }
+        .role-select-value{ display:flex; align-items:center; gap:8px; cursor:pointer; color:#e6eef8; }
+        /* caret */
+        .role-select-value::after{ content: ''; display:inline-block; width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-top:7px solid rgba(255,255,255,0.7); margin-left:6px; transform:translateY(1px); }
+        .role-options{ position:absolute; top:calc(100% + 8px); left:0; min-width:100%; background:linear-gradient(180deg, rgba(11,18,28,0.98), rgba(6,10,16,0.95)); border:1px solid rgba(255,255,255,0.04); padding:8px; border-radius:12px; display:none; z-index:1500; box-shadow:0 18px 60px rgba(2,6,23,0.6); box-sizing:border-box; }
+        .role-options.open{ display:block; }
+        .role-option{ display:block; width:100%; text-align:left; background:transparent; border:none; padding:6px 8px; border-radius:10px; cursor:pointer; }
+        .role-option:hover{ background: rgba(255,255,255,0.02); }
+        .role-option:focus{ outline:2px solid rgba(90,179,255,0.12); }
+        .role-option .role-badge{ display:inline-block; }
+
         @@media (max-width:720px){ .card{ width:94vw; margin-top:18px; } table.users thead{ display:none; } table.users tbody td{ display:block; width:100%; } }
  
     </style>
@@ -80,7 +111,7 @@
             <div class="card-header">
                 <div>
                     <h1 id="usersTitle">User Management</h1>
-                    <div class="card-sub">Create, edit and delete application users. Paginated list to manage large sets.</div>
+                    <div class="card-sub">Create, edit and delete users.</div>
                 </div>
                 <div class="controls">
                     <input id="searchInput" class="search" placeholder="Filter by email" />
@@ -148,11 +179,33 @@
                 </div>
                 <div class="form-row">
                     <label for="role">Role</label>
-                    <select id="role">
-                        <option value="User">User</option>
-                        <option value="Admin">Admin</option>
+
+                    <!-- Hidden native select retained for form semantics and server side; visually we provide a custom selector below -->
+                    <select id="role" class="select-role" aria-hidden="true" style="display:none;">
                         <option value="SuperAdmin">SuperAdmin</option>
+                        <option value="Admin">Admin</option>
+                        <option value="DeviceUser">DeviceUser</option>
                     </select>
+
+                    <!-- Custom visual selector that matches page badges -->
+                    <div class="role-select-wrap" id="roleSelectWrap" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
+                        <div class="role-select-value" id="roleDisplay" aria-live="polite">
+                            <span class="role-badge role-deviceuser">DeviceUser</span>
+                        </div>
+
+                        <div class="role-options" id="roleOptions" role="listbox" aria-labelledby="roleDisplay" tabindex="-1">
+                            <button type="button" class="role-option" data-value="SuperAdmin">
+                                <span class="role-badge role-superadmin">SuperAdmin</span>
+                            </button>
+                            <button type="button" class="role-option" data-value="Admin">
+                                <span class="role-badge role-admin">Admin</span>
+                            </button>
+                            <button type="button" class="role-option" data-value="DeviceUser">
+                                <span class="role-badge role-deviceuser">DeviceUser</span>
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
                 <div class="form-row">
                     <label for="password">Password <span style="color:#9aa4b2;font-size:12px">(leave empty to keep on edit)</span></label>
@@ -176,6 +229,8 @@
 
             // Focus management for modal: restore focus to the opener when closing
             let lastFocusedEl = null;
+            // Only restore focus to the role selector when the options were explicitly opened by the user
+            let roleOptionsShouldRestoreFocus = false;
 
             const usersTableBody = document.querySelector('#usersTable tbody');
             const prevPageBtn = document.getElementById('prevPage');
@@ -188,7 +243,6 @@
             const modalTitle = document.getElementById('modalTitle');
             const modalSave = document.getElementById('modalSave');
             const modalCancel = document.getElementById('modalCancel');
-            const userForm = document.getElementById('userForm');
             const userIdEl = document.getElementById('userId');
             const emailEl = document.getElementById('email');
             const roleEl = document.getElementById('role');
@@ -196,6 +250,76 @@
 
             const createBtn = document.getElementById('createBtn');
             const toastContainer = document.getElementById('toastContainer');
+
+            // Custom role selector elements
+            const roleSelectWrap = document.getElementById('roleSelectWrap');
+            const roleOptions = document.getElementById('roleOptions');
+            const roleDisplay = document.getElementById('roleDisplay');
+            const roleOptionButtons = Array.from(document.querySelectorAll('.role-option'));
+
+            // Helpers to sync hidden select and the custom UI
+            function updateRoleDisplay(){
+                 const val = roleEl.value || 'DeviceUser';
+                 const normalized = String(val);
+                 const cls = 'role-' + normalized.toLowerCase().replace(/[^a-z0-9]/g, '');
+                 roleDisplay.innerHTML = '<span class="role-badge ' + cls + '">' + normalized + '</span>';
+                 // update aria-expanded attribute
+                 if (roleSelectWrap) roleSelectWrap.setAttribute('aria-expanded', roleOptions.classList.contains('open'));
+             }
+
+            // Open/close helpers for the custom role options. Use a guard flag so we only restore
+            // focus to the selector when the options were opened by the user (avoids unexpected focus jumps).
+            function openRoleOptions(){
+                roleOptions.classList.add('open');
+                if (roleSelectWrap) roleSelectWrap.setAttribute('aria-expanded','true');
+                try { roleOptions.focus(); } catch (e) {}
+                // remember that the user opened the options so closing should restore focus
+                roleOptionsShouldRestoreFocus = true;
+            }
+
+            function closeRoleOptions(){
+                roleOptions.classList.remove('open');
+                if (roleSelectWrap) roleSelectWrap.setAttribute('aria-expanded','false');
+                // only restore focus to the role UI when the options were opened by the user
+                if (roleOptionsShouldRestoreFocus && roleSelectWrap) {
+                    try { roleSelectWrap.focus(); } catch (e) {}
+                }
+                roleOptionsShouldRestoreFocus = false;
+            }
+
+            // Wire interactions
+            if (roleSelectWrap){
+                roleSelectWrap.addEventListener('click', (e)=>{
+                    e.stopPropagation(); if (roleOptions.classList.contains('open')) closeRoleOptions(); else openRoleOptions();
+                });
+                // keyboard support
+                roleSelectWrap.addEventListener('keydown', (e)=>{
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (roleOptions.classList.contains('open')) closeRoleOptions(); else openRoleOptions(); }
+                    if (e.key === 'ArrowDown'){ e.preventDefault(); openRoleOptions(); const first = roleOptionButtons[0]; if (first) first.focus(); }
+                });
+            }
+
+            // clicking an option sets the hidden select and updates UI
+            roleOptionButtons.forEach(btn => {
+                btn.addEventListener('click', ()=>{
+                    const v = btn.getAttribute('data-value');
+                    if (v){ roleEl.value = v; updateRoleDisplay(); }
+                    closeRoleOptions();
+                });
+                // keyboard selection inside options
+                btn.addEventListener('keydown', (e)=>{
+                    const idx = roleOptionButtons.indexOf(btn);
+                    if (e.key === 'ArrowDown'){ e.preventDefault(); const next = roleOptionButtons[idx+1]; if (next) next.focus(); }
+                    if (e.key === 'ArrowUp'){ e.preventDefault(); const prev = roleOptionButtons[idx-1]; if (prev) prev.focus(); }
+                    if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); btn.click(); }
+                });
+            });
+
+            // close options when clicking outside
+            document.addEventListener('click', (e)=>{ if (!roleSelectWrap) return; if (!roleSelectWrap.contains(e.target)) closeRoleOptions(); });
+
+            // ensure display reflects underlying value when modal opens
+            // The openModal function below calls updateRoleDisplay when preparing the modal; also initialize the display now.
 
             let offset = 0;
             let limit = Number(pageSizeEl.value) || 10;
@@ -226,8 +350,9 @@
                     modalTitle.innerText = 'Create user';
                     userIdEl.value = '';
                     emailEl.value = '';
-                    roleEl.value = 'User';
+                    roleEl.value = 'DeviceUser';
                     passwordEl.value = '';
+                    updateRoleDisplay();
                     emailEl.focus();
                 } else {
                     modalTitle.innerText = 'Edit user';
@@ -237,8 +362,9 @@
                         // fallback to provided object
                         userIdEl.value = user.UserId ?? user.userId ?? user.id ?? '';
                         emailEl.value = user.Email ?? user.email ?? '';
-                        roleEl.value = user.Role ?? user.role ?? 'User';
+                        roleEl.value = user.Role ?? user.role ?? 'DeviceUser';
                         passwordEl.value = '';
+                        updateRoleDisplay();
                         emailEl.focus();
                     } else {
                         // fetch single user resource for authoritative data
@@ -251,22 +377,25 @@
                                 const u = (data && (Array.isArray(data) ? data[0] : data)) || user;
                                 userIdEl.value = u.UserId ?? u.userId ?? u.id ?? id;
                                 emailEl.value = u.Email ?? u.email ?? '';
-                                roleEl.value = u.Role ?? u.role ?? 'User';
+                                roleEl.value = u.Role ?? u.role ?? 'DeviceUser';
                                 passwordEl.value = '';
+                                updateRoleDisplay();
                             } else {
                                 // fallback to passed-in object
                                 userIdEl.value = id;
                                 emailEl.value = user.Email ?? user.email ?? '';
-                                roleEl.value = user.Role ?? user.role ?? 'User';
+                                roleEl.value = user.Role ?? user.role ?? 'DeviceUser';
                                 passwordEl.value = '';
+                                updateRoleDisplay();
                                 showToast('Failed to refresh user details; using cached values', { type: 'error', duration: 3000 });
                             }
                         } catch (e) {
                             console.warn('Failed to fetch single user', e);
                             userIdEl.value = id;
                             emailEl.value = user.Email ?? user.email ?? '';
-                            roleEl.value = user.Role ?? user.role ?? 'User';
+                            roleEl.value = user.Role ?? user.role ?? 'DeviceUser';
                             passwordEl.value = '';
+                            updateRoleDisplay();
                         } finally {
                             modalSave.disabled = false; modalSave.removeAttribute('aria-busy');
                             emailEl.focus();
@@ -297,12 +426,12 @@
                     showLoading();
                     limit = Number(pageSizeEl.value) || 10;
                     const q = encodeURIComponent(searchInput.value || '');
-                    const url = `/v1/admin/users?offset=${offset}&limit=${limit}` + (q ? `&q=${q}` : '');
+                    const url = `/v1/admin/users?offset=${offset}&limit=${limit}` + (q ? `&search=${q}` : '');
                     const resp = await fetch(url, { cache: 'no-store' });
                     if (!resp.ok){ showToast('Failed to load users', { type: 'error' }); return; }
                     const data = await resp.json();
                     // Accept several shapes: { Users: [...], Total: n } or array
-                    let items = [];
+                    let items;
                     if (Array.isArray(data)) items = data;
                     else if (Array.isArray(data.Users)) items = data.Users;
                     else if (Array.isArray(data.users)) items = data.users;
@@ -329,7 +458,15 @@
                 items.forEach(u => {
                     const tr = document.createElement('tr');
                     const email = document.createElement('td'); email.innerText = u.Email ?? u.email ?? '';
-                    const role = document.createElement('td'); role.innerText = u.Role ?? u.role ?? '';
+                    const role = document.createElement('td');
+                    // render role as a styled badge to match page design
+                    const roleText = (u.Role ?? u.role ?? 'DeviceUser');
+                    const badge = document.createElement('span');
+                    const safeClass = ('role-' + String(roleText).toLowerCase().replace(/[^a-z0-9]/g, ''));
+                    badge.className = 'role-badge ' + safeClass;
+                    badge.innerText = roleText;
+                    role.appendChild(badge);
+
                     const actions = document.createElement('td'); actions.style.display = 'flex'; actions.style.gap = '8px';
 
                     const edit = document.createElement('button'); edit.className = 'btn-ghost'; edit.innerText = 'Edit';

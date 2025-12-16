@@ -8,7 +8,8 @@ public class DeviceConfiguration : IEntityTypeConfiguration<Device>
     public void Configure(EntityTypeBuilder<Device> builder)
     {
         builder.HasKey(d => d.DeviceId);
-        builder.HasIndex(d => d.IMEI);
+        builder.HasIndex(d => d.IMEI).IsUnique();
+        builder.HasIndex(d => d.Name);
         
         builder.Property(d => d.IMEI)
             .HasMaxLength(16)

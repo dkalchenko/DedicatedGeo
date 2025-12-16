@@ -28,6 +28,11 @@ public class GetUsersAdminRequestHandler: IRequestHandler<GetUsersAdminRequest, 
         }
         else
         {
+            if (request.Search is not null)
+            {
+                query = query.Where(x => x.Email.Contains(request.Search));
+            }
+            
             query = query.Skip(request.Offset).Take(request.Limit);
         }
         

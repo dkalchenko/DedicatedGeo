@@ -23,9 +23,15 @@ public class GetDevicesAdminRequestHandler: IRequestHandler<GetDevicesAdminReque
         var deviceIds = await _deviceAssignmentService.GetDevicesAssignedToUserAsync(
             request.UserId.ToGuid(), request.Offset, request.Limit, cancellationToken);
         
-        var devices = await _databaseRepository.Devices.AsQueryable()
-            .Where(x => deviceIds.Contains(x.DeviceId))
-            .ToListAsync(cancellationToken: cancellationToken);
+        var query = _databaseRepository.Devices.AsQueryable()
+            .Where(x => deviceIds.Contains(x.DeviceId));
+
+        if (request.Search is not null)
+        {
+            query = query.Where(x => x.Name.Contains(request.Search) || x.IMEI.Contains(request.Search));
+        }
+        
+        var devices = await query.Skip(request.Offset).Take(request.Limit).ToListAsync(cancellationToken: cancellationToken);
 
         return new GetDevicesAdminResponse
         {
