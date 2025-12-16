@@ -20,7 +20,7 @@ public class WebAdminController: Controller
     public IActionResult Users()
     {
         return View();
-    }    
+    }
     
     [HttpGet("devices")]
     [Authorize(Roles = $"{OwnConstants.Roles.SuperAdmin},{OwnConstants.Roles.Admin}")]

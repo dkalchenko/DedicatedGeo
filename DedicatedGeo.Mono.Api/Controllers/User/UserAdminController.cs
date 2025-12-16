@@ -2,7 +2,6 @@ using DedicatedGeo.Mono.Common;
 using DedicatedGeo.Mono.Dtos.User;
 using HybridModelBinding;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DedicatedGeo.Mono.Api.Controllers.User;
@@ -21,16 +20,16 @@ public class UserAdminController: Controller
     [HttpPost]
     public async Task<IActionResult> PostUser([FromHybrid] PostUserAdminRequest request)
     {
-        await _sender.Send(request);
-        return Ok();
+        var resp = await _sender.Send(request);
+        return Ok(resp);
     }
     
     
     [HttpPut("{userId}")]
     public async Task<IActionResult> PutUser([FromHybrid] PutUserAdminRequest request)
     {
-        await _sender.Send(request);
-        return Ok();
+        var resp = await _sender.Send(request);
+        return Ok(resp);
     }
     
     
@@ -45,15 +44,15 @@ public class UserAdminController: Controller
     [HttpGet("{userId}")]
     public async Task<IActionResult> GetUser([FromHybrid] GetUserAdminRequest request)
     {
-        await _sender.Send(request);
-        return Ok();
+        var resp = await _sender.Send(request);
+        return Ok(resp);
     }
     
     
     [HttpGet]
     public async Task<IActionResult> GetUsers([FromHybrid] GetUsersAdminRequest request)
     {
-        await _sender.Send(request);
-        return Ok();
+        var resp = await _sender.Send(request);
+        return Ok(resp);
     }
 }

@@ -12,6 +12,7 @@
         color: #e6eef8;
         border: 1px solid rgba(255,255,255,0.04);
         padding: 8px 12px;
+        min-height: 36px;
         border-radius: 8px;
         cursor: pointer;
         font-weight: 600;
@@ -240,7 +241,29 @@
     .device-status.offline { color: #ef4444; }
 
     .actions{ display:flex; gap:8px; align-items:center; }
-    .btn{ padding:8px 12px; border-radius:9px; border:none; cursor:pointer; font-weight:600; }
+    /* Unified control buttons: make modal-close / btn / logout match the Details button
+       and match the datetime picker height by using the same vertical padding. */
+    .modal-close, .btn, .map-logout {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: rgba(11,18,28,0.85);
+        color: #e6eef8;
+        border: 1px solid rgba(255,255,255,0.04);
+        padding: 8px 12px; /* same vertical padding as .datetime-input */
+        min-height: 36px; /* ensures button height matches input visually */
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        font-size: 13px;
+        box-sizing: border-box;
+        background-clip: padding-box;
+    }
+
+    /* Danger buttons keep their distinct gradient but inherit sizing & layout from above */
+    .btn{ padding: 8px 12px; border-radius:9px; border:none; }
     .btn.danger{ background: linear-gradient(180deg,#ef4444,#c81b1b); color:white; }
 
     .datetime-row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
@@ -258,7 +281,8 @@
     .modal-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
     .modal-title{ font-weight:700; color:#e6eef8; }
     .modal-sub{ color:#9aa4b2; font-size:12px; }
-    .modal-close{ background:transparent; border:1px solid rgba(255,255,255,0.04); color:#e6eef8; padding:6px 8px; border-radius:8px; cursor:pointer; }
+    /* keep modal header close selector minimal to avoid overriding unified .modal-close rules */
+    .modal-header .modal-close{ /* intentionally minimal — visual styling is unified above */ }
     .modal-list{ display:flex; flex-direction:column; gap:8px; position:relative; padding-left:28px; padding-right:8px; }
     /* vertical timeline line inside the modal list (put behind the dots) */
     .modal-list::before{ content: ''; position:absolute; left:13px; top:12px; bottom:12px; width:2px; background: rgba(255,255,255,0.03); border-radius:2px; z-index:1; }
@@ -283,9 +307,15 @@
         .group{ min-width:unset; }
         .modal-card{ width: 94vw; }
     }
+
+    /* logout button fixed on map (left-bottom) */
+    .map-logout{ position: absolute; left: 12px; bottom: 12px; z-index: 1105; }
 </style>
 
 <div id="map"></div>
+
+<!-- Logout button moved from the sidebar to a fixed position over the map -->
+<button id="logoutBtn" class="modal-close map-logout" aria-label="Logout">Logout</button>
 
 <!-- Top-center datetime picker moved from the sidebar -->
 <div id="pickerContainer" style="position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:1103;display:flex;align-items:center;gap:8px;background:rgba(11,18,28,0.85);padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);">
@@ -303,6 +333,7 @@
         <div class="title"><h3 style="margin:0;font-size:14px;color:#dfe8f7">Devices</h3></div>
         <div class="actions" style="display:flex;">
             <button id="closeSidebar" class="modal-close" aria-label="Close sidebar">Close</button>
+            <!-- removed logoutBtn from here because it's now positioned on the map -->
         </div>
     </div>
 
@@ -1395,3 +1426,46 @@
 
 </script>
 
+<script>
+(function(){
+    // Robustly clear a cookie by name for several likely domain/path combinations
+    function clearCookie(name){
+        if (!name) return;
+        try {
+            // Basic clear for current path
+            document.cookie = name + '=; Max-Age=0; path=/;';
+            // Expire with past date
+            document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;';
+            // Try with current domain explicitly
+            try { document.cookie = name + '=; Max-Age=0; domain=' + location.hostname + '; path=/;'; } catch (e) {}
+            // Try without path
+            document.cookie = name + '=; Max-Age=0;';
+        } catch (e) {
+            // swallow
+        }
+    }
+
+    function clearAuthTokenVariants(){
+        const names = ['AuthToken','authToken','auth_token','AUTH_TOKEN'];
+        names.forEach(clearCookie);
+        try {
+            // also remove any localStorage variants
+            names.forEach(n => { try { localStorage.removeItem(n); } catch(e) {} });
+        } catch (e) {}
+    }
+
+    const btn = document.getElementById('logoutBtn');
+    if (!btn) return;
+    btn.addEventListener('click', async function(ev){
+        ev.stopPropagation();
+        ev.preventDefault();
+
+        clearAuthTokenVariants();
+        
+        setTimeout(() => {
+            try { window.location.href = '/'; }
+            catch (e) { try { location.reload(); } catch(e){} }
+        }, 100);
+    });
+})();
+</script>

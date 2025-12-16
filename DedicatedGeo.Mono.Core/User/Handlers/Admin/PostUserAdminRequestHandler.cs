@@ -21,6 +21,7 @@ public class PostUserAdminRequestHandler: IRequestHandler<PostUserAdminRequest, 
         {
             UserId = Guid.NewGuid(),
             Email = request.Email,
+            Role = request.Role,
             Password = request.Password.ToPasswordHash()
         };
         

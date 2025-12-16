@@ -1,0 +1,431 @@
+﻿@{
+    Layout = null; // standalone admin users page styled like Login.cshtml
+}
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Users Management</title>
+
+    <style>
+        /* Using concrete colors instead of CSS variables to avoid analyzer warnings about unresolved custom properties */
+        html,body{ height:100%; margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: linear-gradient(180deg, rgba(3,7,12,1), rgba(6,10,16,1)); color: #e6eef8; }
+
+        .root{ min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:32px; box-sizing:border-box; }
+
+        .card{
+            width: min(920px, 96vw);
+            margin-top:32px;
+            background: linear-gradient(180deg, rgba(11,18,28,0.95), rgba(6,10,16,0.98));
+            border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 20px 60px rgba(2,6,23,0.6);
+            display:flex; flex-direction:column; gap:16px;
+        }
+
+        .card-header{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+        .card-header h1{ margin:0; font-size:18px; }
+        .card-sub{ color:#9aa4b2; font-size:13px; }
+
+        .controls{ display:flex; gap:8px; align-items:center; }
+        .search{ padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03)); color:#e6eef8; }
+
+        table.users{ width:100%; border-collapse:collapse; font-size:14px; }
+        table.users thead th{ text-align:left; color:#9aa4b2; font-weight:600; padding:10px; font-size:13px; }
+        table.users tbody td{ padding:10px; border-top:1px solid rgba(255,255,255,0.02); }
+        table.users tbody tr:hover td{ background: linear-gradient(90deg, rgba(255,255,255,0.01), rgba(0,0,0,0.02)); }
+
+        /* Buttons (match Login.cshtml style) */
+        .btn-primary{
+            background: linear-gradient(90deg, #7c5cff, #5ab3ff);
+            border:none; color:white; padding:10px 14px; font-weight:700; border-radius:10px; cursor:pointer; font-size:14px;
+            box-shadow: 0 8px 30px rgba(90,179,255,0.06);
+        }
+        .btn-ghost{
+            background: transparent; border:1px solid rgba(255,255,255,0.04); color:#e6eef8; padding:8px 10px; border-radius:8px; cursor:pointer; font-weight:600;
+        }
+        .btn-danger{ background: linear-gradient(180deg,#ef4444,#c81b1b); color:white; padding:8px 10px; border-radius:8px; border:none; cursor:pointer; font-weight:600; }
+
+        .pagination{ display:flex; gap:8px; align-items:center; }
+        .page-input{ padding:6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); background:transparent; color:#e6eef8; }
+
+        /* Modal (create/edit) */
+        .modal-backdrop{ position:fixed; inset:0; background: rgba(2,6,23,0.6); display:none; align-items:center; justify-content:center; z-index:1400; }
+        .modal-backdrop.open{ display:flex; }
+        .modal-card{ width: min(560px, 96vw); background: linear-gradient(180deg, rgba(11,18,28,0.98), rgba(6,10,16,0.95)); border:1px solid rgba(255,255,255,0.04); padding:16px; border-radius:12px; box-shadow: 0 24px 80px rgba(2,6,23,0.6); }
+        .form-row{ display:flex; flex-direction:column; gap:6px; margin-bottom:8px; }
+        label{ color:#9aa4b2; font-size:13px; }
+        input[type="text"], input[type="email"], input[type="password"], select{ background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03)); border: 1px solid rgba(255,255,255,0.04); color: #e6eef8; padding: 10px 12px; border-radius: 10px; outline:none; }
+
+        .row{ display:flex; gap:8px; align-items:center; }
+
+        .toast-container{ position: fixed; top: 16px; right: 16px; z-index: 1600; display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
+        .toast{ min-width: 220px; max-width: 88vw; background: linear-gradient(180deg, rgba(11,18,28,0.95), rgba(6,10,16,0.98)); color: #e6eef8; border: 1px solid rgba(255,255,255,0.04); padding: 10px 12px; border-radius: 10px; box-shadow: 0 12px 36px rgba(2,6,23,0.6); font-size:13px; display:flex; align-items:center; gap:10px; }
+        .toast.error{ border-color: rgba(239,68,68,0.18); background: linear-gradient(180deg, rgba(239,68,68,0.06), rgba(11,18,28,0.95)); color:#fff2f2; }
+
+        /* small centered spinner used for table loading and button states */
+        .spinner{ width:28px; height:28px; border-radius:999px; border:3px solid rgba(255,255,255,0.06); border-top-color:#5ab3ff; animation:spin 1s linear infinite; }
+        @@keyframes spin{ to { transform:rotate(360deg); } }
+
+        @@media (max-width:720px){ .card{ width:94vw; margin-top:18px; } table.users thead{ display:none; } table.users tbody td{ display:block; width:100%; } }
+ 
+    </style>
+</head>
+<body>
+    <main class="root" role="main">
+        <section class="card" aria-labelledby="usersTitle">
+            <div class="card-header">
+                <div>
+                    <h1 id="usersTitle">User Management</h1>
+                    <div class="card-sub">Create, edit and delete application users. Paginated list to manage large sets.</div>
+                </div>
+                <div class="controls">
+                    <input id="searchInput" class="search" placeholder="Filter by email" />
+                    <button id="createBtn" class="btn-primary">Create user</button>
+                </div>
+            </div>
+
+            <div id="tableWrapper" style="position:relative;overflow:auto;">
+                <div id="tableSpinner" class="spinner" aria-hidden="true" style="display:none; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);"></div>
+                <table class="users" id="usersTable" aria-describedby="usersTitle" aria-busy="false">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th style="width:180px">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                <div class="pagination">
+                    <button id="prevPage" class="btn-ghost">Previous</button>
+                    <div style="display:flex;align-items:center;gap:8px;color:#9aa4b2">
+                        Page <span id="currentPage">1</span>
+                    </div>
+                    <button id="nextPage" class="btn-ghost">Next</button>
+                </div>
+
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="color:#9aa4b2;font-size:13px;">Page size</label>
+                    <select id="pageSize" class="page-input">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Modal -->
+    <div id="modalBackdrop" class="modal-backdrop" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div>
+                    <div id="modalTitle" style="font-weight:700;font-size:16px;color:#e6eef8">Create user</div>
+                    <div id="modalSub" style="color:#9aa4b2;font-size:13px"></div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <button id="modalCancel" class="btn-ghost">Cancel</button>
+                    <button id="modalSave" class="btn-primary">Save</button>
+                </div>
+            </div>
+
+            <form id="userForm" style="margin-top:12px;">
+                <input type="hidden" id="userId" />
+                <div class="form-row">
+                    <label for="email">Email</label>
+                    <input id="email" type="email" required />
+                </div>
+                <div class="form-row">
+                    <label for="role">Role</label>
+                    <select id="role">
+                        <option value="User">User</option>
+                        <option value="Admin">Admin</option>
+                        <option value="SuperAdmin">SuperAdmin</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="password">Password <span style="color:#9aa4b2;font-size:12px">(leave empty to keep on edit)</span></label>
+                    <input id="password" type="password" />
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <script>
+        (function(){
+            // Utility: debounce to avoid firing search on every keystroke
+            function debounce(fn, wait){ let t = null; return function(...args){ clearTimeout(t); t = setTimeout(()=> fn.apply(this, args), wait); }; }
+
+            // Loading helpers
+            const tableSpinner = document.getElementById('tableSpinner');
+            function showLoading(){ if (tableSpinner) tableSpinner.style.display = ''; document.getElementById('usersTable').setAttribute('aria-busy','true'); prevPageBtn.disabled = true; nextPageBtn.disabled = true; }
+            function hideLoading(){ if (tableSpinner) tableSpinner.style.display = 'none'; document.getElementById('usersTable').setAttribute('aria-busy','false'); }
+
+            // Focus management for modal: restore focus to the opener when closing
+            let lastFocusedEl = null;
+
+            const usersTableBody = document.querySelector('#usersTable tbody');
+            const prevPageBtn = document.getElementById('prevPage');
+            const nextPageBtn = document.getElementById('nextPage');
+            const currentPageEl = document.getElementById('currentPage');
+            const pageSizeEl = document.getElementById('pageSize');
+            const searchInput = document.getElementById('searchInput');
+
+            const modalBackdrop = document.getElementById('modalBackdrop');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalSave = document.getElementById('modalSave');
+            const modalCancel = document.getElementById('modalCancel');
+            const userForm = document.getElementById('userForm');
+            const userIdEl = document.getElementById('userId');
+            const emailEl = document.getElementById('email');
+            const roleEl = document.getElementById('role');
+            const passwordEl = document.getElementById('password');
+
+            const createBtn = document.getElementById('createBtn');
+            const toastContainer = document.getElementById('toastContainer');
+
+            let offset = 0;
+            let limit = Number(pageSizeEl.value) || 10;
+            let currentPage = 1;
+            let totalCount = null; // may be unknown
+
+            function showToast(message, { type = 'default', duration = 4000 } = {}){
+                const t = document.createElement('div');
+                t.className = 'toast' + (type === 'error' ? ' error' : '');
+                t.setAttribute('role','status');
+                t.textContent = message;
+                const close = document.createElement('button'); close.type = 'button'; close.innerText = 'Close'; close.className = 'btn-ghost'; close.style.marginLeft = '8px';
+                close.addEventListener('click', ()=> t.remove());
+                t.appendChild(close);
+                toastContainer.appendChild(t);
+                if (duration > 0) setTimeout(()=>{ try{ t.remove(); }catch(e){} }, duration);
+            }
+
+            async function openModal(mode, user){
+                 // remember opener so we can restore focus when modal closes
+                 try { lastFocusedEl = document.activeElement; } catch (e) {}
+                modalBackdrop.classList.add('open');
+                modalBackdrop.setAttribute('aria-hidden','false');
+                // prevent background scroll while modal is open
+                document.body.style.overflow = 'hidden';
+
+                if (mode === 'create'){
+                    modalTitle.innerText = 'Create user';
+                    userIdEl.value = '';
+                    emailEl.value = '';
+                    roleEl.value = 'User';
+                    passwordEl.value = '';
+                    emailEl.focus();
+                } else {
+                    modalTitle.innerText = 'Edit user';
+                    // prefer to fetch freshest data from server when possible
+                    const id = user.UserId ?? user.userId ?? user.id ?? null;
+                    if (!id) {
+                        // fallback to provided object
+                        userIdEl.value = user.UserId ?? user.userId ?? user.id ?? '';
+                        emailEl.value = user.Email ?? user.email ?? '';
+                        roleEl.value = user.Role ?? user.role ?? 'User';
+                        passwordEl.value = '';
+                        emailEl.focus();
+                    } else {
+                        // fetch single user resource for authoritative data
+                        try {
+                            // show temporary busy state in modal save button
+                            modalSave.disabled = true; modalSave.setAttribute('aria-busy','true');
+                            const resp = await fetch(`/v1/admin/users/${encodeURIComponent(id)}`, { cache: 'no-store' });
+                            if (resp.ok) {
+                                const data = await resp.json();
+                                const u = (data && (Array.isArray(data) ? data[0] : data)) || user;
+                                userIdEl.value = u.UserId ?? u.userId ?? u.id ?? id;
+                                emailEl.value = u.Email ?? u.email ?? '';
+                                roleEl.value = u.Role ?? u.role ?? 'User';
+                                passwordEl.value = '';
+                            } else {
+                                // fallback to passed-in object
+                                userIdEl.value = id;
+                                emailEl.value = user.Email ?? user.email ?? '';
+                                roleEl.value = user.Role ?? user.role ?? 'User';
+                                passwordEl.value = '';
+                                showToast('Failed to refresh user details; using cached values', { type: 'error', duration: 3000 });
+                            }
+                        } catch (e) {
+                            console.warn('Failed to fetch single user', e);
+                            userIdEl.value = id;
+                            emailEl.value = user.Email ?? user.email ?? '';
+                            roleEl.value = user.Role ?? user.role ?? 'User';
+                            passwordEl.value = '';
+                        } finally {
+                            modalSave.disabled = false; modalSave.removeAttribute('aria-busy');
+                            emailEl.focus();
+                        }
+                    }
+                }
+            }
+
+            function closeModal(){
+                modalBackdrop.classList.remove('open');
+                modalBackdrop.setAttribute('aria-hidden','true');
+                // restore scrolling
+                document.body.style.overflow = '';
+                // restore focus to the element that opened the modal
+                try { if (lastFocusedEl && typeof lastFocusedEl.focus === 'function') lastFocusedEl.focus(); } catch (e) {}
+            }
+
+            modalCancel.addEventListener('click', (e)=>{ e.preventDefault(); closeModal(); });
+            modalBackdrop.addEventListener('click', (e)=>{ if (e.target === modalBackdrop) closeModal(); });
+            // Close modal on Escape
+            document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && modalBackdrop.classList.contains('open')) { closeModal(); } });
+
+            createBtn.setAttribute('aria-label','Create user');
+            createBtn.addEventListener('click', (e)=> { lastFocusedEl = e.currentTarget; openModal('create'); });
+
+            async function fetchUsers(){
+                try{
+                    showLoading();
+                    limit = Number(pageSizeEl.value) || 10;
+                    const q = encodeURIComponent(searchInput.value || '');
+                    const url = `/v1/admin/users?offset=${offset}&limit=${limit}` + (q ? `&q=${q}` : '');
+                    const resp = await fetch(url, { cache: 'no-store' });
+                    if (!resp.ok){ showToast('Failed to load users', { type: 'error' }); return; }
+                    const data = await resp.json();
+                    // Accept several shapes: { Users: [...], Total: n } or array
+                    let items = [];
+                    if (Array.isArray(data)) items = data;
+                    else if (Array.isArray(data.Users)) items = data.Users;
+                    else if (Array.isArray(data.users)) items = data.users;
+                    else items = [];
+
+                    // try to extract total count
+                    if (typeof data.Total === 'number') totalCount = data.Total;
+                    else if (typeof data.total === 'number') totalCount = data.total;
+                    else totalCount = null;
+
+                    renderUsers(items);
+                } catch (e){ console.error('fetchUsers error', e); showToast('Failed to load users', { type: 'error' }); }
+                finally { hideLoading(); }
+            }
+
+            function renderUsers(items){
+                usersTableBody.innerHTML = '';
+                if (!items || items.length === 0){
+                    const tr = document.createElement('tr');
+                    const td = document.createElement('td'); td.colSpan = 3; td.style.color = '#9aa4b2'; td.innerText = 'No users';
+                    tr.appendChild(td); usersTableBody.appendChild(tr); return;
+                }
+
+                items.forEach(u => {
+                    const tr = document.createElement('tr');
+                    const email = document.createElement('td'); email.innerText = u.Email ?? u.email ?? '';
+                    const role = document.createElement('td'); role.innerText = u.Role ?? u.role ?? '';
+                    const actions = document.createElement('td'); actions.style.display = 'flex'; actions.style.gap = '8px';
+
+                    const edit = document.createElement('button'); edit.className = 'btn-ghost'; edit.innerText = 'Edit';
+                    edit.addEventListener('click', (e)=> { lastFocusedEl = e.currentTarget; openModal('edit', u) });
+
+                    const del = document.createElement('button'); del.className = 'btn-danger'; del.innerText = 'Delete';
+                    del.addEventListener('click', (e)=> deleteUser(u, e.currentTarget));
+
+                    actions.appendChild(edit); actions.appendChild(del);
+                    tr.appendChild(email); tr.appendChild(role); tr.appendChild(actions);
+                    usersTableBody.appendChild(tr);
+                });
+
+                // update page indicator
+                const page = Math.floor(offset / limit) + 1; currentPage = page; currentPageEl.innerText = String(page);
+
+                // enable/disable prev/next depending on totalCount or items length
+                prevPageBtn.disabled = offset === 0;
+                if (totalCount !== null){
+                    nextPageBtn.disabled = offset + limit >= totalCount;
+                } else {
+                    // if no total known, disable next when fewer items than limit returned
+                    nextPageBtn.disabled = items.length < limit;
+                }
+            }
+
+            prevPageBtn.addEventListener('click', ()=>{
+                if (offset === 0) return; offset = Math.max(0, offset - limit); fetchUsers();
+            });
+            nextPageBtn.addEventListener('click', ()=>{
+                offset += limit; fetchUsers();
+            });
+
+            pageSizeEl.addEventListener('change', ()=>{
+                offset = 0; fetchUsers();
+            });
+
+            // debounce the search input for better UX
+            const debouncedFetch = debounce(()=>{ offset = 0; fetchUsers(); }, 300);
+            searchInput.addEventListener('input', debouncedFetch);
+            searchInput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter'){ e.preventDefault(); offset = 0; fetchUsers(); } });
+
+            modalSave.addEventListener('click', async (e)=>{
+                e.preventDefault();
+                const id = userIdEl.value && userIdEl.value.trim();
+                const payload = {
+                    UserId: id || undefined,
+                    Email: emailEl.value.trim(),
+                    Role: roleEl.value,
+                    Password: passwordEl.value || undefined
+                };
+                try{
+                    if (!payload.Email){ showToast('Email is required', { type:'error' }); emailEl.focus(); return; }
+                    if (!payload.Role){ showToast('Role is required', { type:'error' }); roleEl.focus(); return; }
+
+                    modalSave.disabled = true; modalSave.setAttribute('aria-busy','true');
+
+                    if (!id){
+                        // create
+                        const resp = await fetch('/v1/admin/users', {
+                            method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ Email: payload.Email, Password: payload.Password || '', Role: payload.Role })
+                        });
+                        if (resp.ok){ showToast('User created'); closeModal(); fetchUsers(); }
+                        else { const bt = await resp.text().catch(()=>null); showToast('Create failed: ' + (bt || resp.status), { type:'error' }); }
+                    } else {
+                        // update
+                        const url = `/v1/admin/users/${encodeURIComponent(id)}`;
+                        const body = { UserId: id, Email: payload.Email, Role: payload.Role };
+                        if (payload.Password) body.Password = payload.Password;
+                        const resp = await fetch(url, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+                        if (resp.ok){ showToast('User updated'); closeModal(); fetchUsers(); }
+                        else { const bt = await resp.text().catch(()=>null); showToast('Update failed: ' + (bt || resp.status), { type:'error' }); }
+                    }
+                } catch (e){ console.error(e); showToast('Save failed', { type:'error' }); }
+                finally { modalSave.disabled = false; modalSave.removeAttribute('aria-busy'); }
+            });
+
+            // Accept optional button parameter to disable while deleting
+            async function deleteUser(u, btn){
+                const id = u.UserId ?? u.userId ?? u.id ?? null;
+                if (!id) { showToast('Cannot determine user id', {type:'error'}); return; }
+                if (!confirm('Delete user ' + (u.Email ?? u.email ?? id) + '? This action cannot be undone.')) return;
+                try{
+                    if (btn){ btn.disabled = true; }
+                    const url = `/v1/admin/users/${encodeURIComponent(id)}`;
+                    const resp = await fetch(url, { method: 'DELETE' });
+                    if (resp.ok){ showToast('User deleted'); fetchUsers(); }
+                    else { const bt = await resp.text().catch(()=>null); showToast('Delete failed: ' + (bt || resp.status), { type:'error' }); }
+                } catch (e){ console.error(e); showToast('Delete failed', { type:'error' }); }
+                finally { if (btn) btn.disabled = false; }
+            }
+
+            // initial load
+            fetchUsers();
+
+        })();
+    </script>
+</body>
+</html>
