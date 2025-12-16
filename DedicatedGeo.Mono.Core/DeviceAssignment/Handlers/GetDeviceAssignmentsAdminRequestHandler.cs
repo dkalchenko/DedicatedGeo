@@ -19,17 +19,17 @@ public class GetDeviceAssignmentsAdminRequestHandler: IRequestHandler<GetDeviceA
         _repository = repository.ThrowIfNull();
         _deviceService = deviceService.ThrowIfNull();
     }
-    
+
     public async Task<GetDeviceAssignmentsAdminResponse> Handle(GetDeviceAssignmentsAdminRequest request, CancellationToken cancellationToken)
     {
         var deviceId = request.DeviceId.ToGuid();
         var device = await _deviceService.GetDeviceByIdAsync(deviceId, cancellationToken);
-        
+
         if (device is null)
         {
             throw OwnConstants.ErrorTemplates.ResourceNotFound.FormatMessage("device").GetException();
         }
-        
+
         var assignments = await _repository.DeviceAssignments
             .Where(x => x.DeviceId == deviceId)
             .OrderByDescending(x => x.CreatedAt)

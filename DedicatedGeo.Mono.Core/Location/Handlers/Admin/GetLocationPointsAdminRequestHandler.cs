@@ -2,6 +2,7 @@
 using DedicatedGeo.Mono.Common.Extensions;
 using DedicatedGeo.Mono.Core.Abstractions.Device.Services;
 using DedicatedGeo.Mono.Core.Abstractions.DeviceAssignment;
+using DedicatedGeo.Mono.Core.Abstractions.User.Services;
 using DedicatedGeo.Mono.Core.Extensions;
 using DedicatedGeo.Mono.Dal.Abstractions;
 using DedicatedGeo.Mono.Dtos.Location;
@@ -16,12 +17,14 @@ public class GetLocationPointsAdminRequestHandler: IRequestHandler<GetLocationPo
     private readonly IDatabaseRepository _repository;
     private readonly IDeviceService _deviceService;
     private readonly IDeviceAssignmentService _deviceAssignmentService;
+    private readonly IUsersServices _usersServices;
 
-    public GetLocationPointsAdminRequestHandler(IDatabaseRepository repository, IDeviceService deviceService, IDeviceAssignmentService deviceAssignmentService)
+    public GetLocationPointsAdminRequestHandler(IDatabaseRepository repository, IDeviceService deviceService, IDeviceAssignmentService deviceAssignmentService, IUsersServices usersServices)
     {
         _repository = repository.ThrowIfNull();
         _deviceService = deviceService.ThrowIfNull();
         _deviceAssignmentService = deviceAssignmentService.ThrowIfNull();
+        _usersServices = usersServices.ThrowIfNull();
     }
 
     public async Task<GetLocationPointsAdminResponse> Handle(GetLocationPointsAdminRequest request, CancellationToken cancellationToken)
@@ -34,9 +37,19 @@ public class GetLocationPointsAdminRequestHandler: IRequestHandler<GetLocationPo
             throw OwnConstants.ErrorTemplates.ResourceNotFound.FormatMessage("device").GetException();
         }
         
-        if (!await _deviceAssignmentService.IsDeviceAssignedToUserAsync(deviceId, request.UserId.ToGuid(), cancellationToken))
+        var user = await _usersServices.GetUserById(request.UserId.ToGuid(), cancellationToken);
+
+        if (user is null)
         {
-            throw OwnConstants.ErrorTemplates.ResourceIsForbidden.GetException();
+            throw OwnConstants.ErrorTemplates.ResourceIsForbidden.FormatMessage("User is not found").GetException();
+        }
+        
+        if (user.Role is OwnConstants.Roles.DeviceUser)
+        {
+            if (!await _deviceAssignmentService.IsDeviceAssignedToUserAsync(deviceId, request.UserId.ToGuid(), cancellationToken))
+            {
+                throw OwnConstants.ErrorTemplates.ResourceIsForbidden.GetException();
+            } 
         }
         
         var to = request.To.ToUniversalTime();

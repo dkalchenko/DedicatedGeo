@@ -14,13 +14,11 @@ public class DeleteLocationPointsAdminRequestHandler: IRequestHandler<DeleteLoca
 {
     private readonly IDatabaseRepository _repository;
     private readonly IDeviceService _deviceService;
-    private readonly IDeviceAssignmentService _deviceAssignmentService;
 
-    public DeleteLocationPointsAdminRequestHandler(IDatabaseRepository repository, IDeviceService deviceService, IDeviceAssignmentService deviceAssignmentService)
+    public DeleteLocationPointsAdminRequestHandler(IDatabaseRepository repository, IDeviceService deviceService)
     {
         _repository = repository.ThrowIfNull();
         _deviceService = deviceService.ThrowIfNull();
-        _deviceAssignmentService = deviceAssignmentService.ThrowIfNull();
     }
     
     public async Task Handle(DeleteLocationPointsAdminRequest request, CancellationToken cancellationToken)
@@ -31,11 +29,6 @@ public class DeleteLocationPointsAdminRequestHandler: IRequestHandler<DeleteLoca
         if (device is null)
         {
             throw OwnConstants.ErrorTemplates.ResourceNotFound.FormatMessage("device").GetException();
-        }
-
-        if (!await _deviceAssignmentService.IsDeviceAssignedToUserAsync(deviceId, request.UserId.ToGuid(), cancellationToken))
-        {
-            throw OwnConstants.ErrorTemplates.ResourceIsForbidden.GetException();
         }
         
         var locationPointIds = request.LocationPointIds?.Split(',').Select(Guid.Parse).ToList();

@@ -72,7 +72,6 @@ public static class OwnConstants
             "Token is not valid. {0}",
             HttpStatusCode.Forbidden
         );
-
         
         public static ExceptionMaker ResourceIsForbidden => new(
             "You cannot use this resource. {0}",
