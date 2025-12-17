@@ -44,13 +44,11 @@ public class GetLocationPointsAdminRequestHandler: IRequestHandler<GetLocationPo
             throw OwnConstants.ErrorTemplates.ResourceIsForbidden.FormatMessage("User is not found").GetException();
         }
         
-        if (user.Role is OwnConstants.Roles.DeviceUser)
+        if (user.Role is OwnConstants.Roles.DeviceUser && !await _deviceAssignmentService.IsDeviceAssignedToUserAsync(device.DeviceId, request.UserId.ToGuid(), cancellationToken))
         {
-            if (!await _deviceAssignmentService.IsDeviceAssignedToUserAsync(deviceId, request.UserId.ToGuid(), cancellationToken))
-            {
-                throw OwnConstants.ErrorTemplates.ResourceIsForbidden.GetException();
-            } 
+            throw OwnConstants.ErrorTemplates.ResourceIsForbidden.GetException();
         }
+
         
         var to = request.To.ToUniversalTime();
         var from = request.From.ToUniversalTime();

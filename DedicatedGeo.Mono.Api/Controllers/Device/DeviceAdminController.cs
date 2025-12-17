@@ -1,5 +1,6 @@
 ﻿using DedicatedGeo.Mono.Common;
 using DedicatedGeo.Mono.Dtos.Device;
+using DedicatedGeo.Mono.Dtos.Device.Admin;
 using DedicatedGeo.Mono.Dtos.Device.Admin.DeviceAssignment;
 using DedicatedGeo.Mono.Dtos.Device.DeviceAssignment;
 using DedicatedGeo.Mono.Dtos.Location;
@@ -25,6 +26,13 @@ public class DeviceAdminController: Controller
     [HttpGet]
     [Authorize(Roles = $"{OwnConstants.Roles.SuperAdmin},{OwnConstants.Roles.Admin},{OwnConstants.Roles.DeviceUser}")]
     public async Task<IActionResult> GetDevices([FromHybrid] GetDevicesAdminRequest request)
+    {
+        return Ok(await _sender.Send(request));
+    }
+    
+    [HttpGet("{deviceId}")]
+    [Authorize(Roles = $"{OwnConstants.Roles.SuperAdmin},{OwnConstants.Roles.Admin},{OwnConstants.Roles.DeviceUser}")]
+    public async Task<IActionResult> GetDevices([FromHybrid] GetDeviceAdminRequest request)
     {
         return Ok(await _sender.Send(request));
     }

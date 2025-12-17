@@ -52,7 +52,7 @@
         .page-input{ -webkit-appearance: none; -moz-appearance: none; appearance: none; padding:6px 36px 6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); background-image: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03)), linear-gradient(45deg, transparent 50%, rgba(255,255,255,0.25) 50%), linear-gradient(135deg, rgba(255,255,255,0.25) 50%, transparent 50%); background-position: left top, calc(100% - 16px) calc(1em + 2px), calc(100% - 12px) calc(1em + 2px); background-size: auto, .5em .5em, .5em .5em; background-repeat: no-repeat; background-color: transparent; color:#e6eef8; cursor:pointer; box-sizing:border-box; }
         .page-input::-ms-expand{ display:none; }
         .page-input:focus{ outline:2px solid rgba(90,179,255,0.12); box-shadow: 0 6px 18px rgba(90,179,255,0.04); }
-        .page-input option{ background: linear-gradient(180deg, rgba(11,18,28,0.98), rgba(6,10,16,0.95)); color:#e6eef8; padding:6px 8px; }
+        .page-input option{ background: linear-gradient(180deg, rgba(11,18,28,0.98), rgba(6,10,16,0.95)); color:#eeefef; padding:6px 8px; }
 
         .modal-backdrop{ position:fixed; inset:0; background: rgba(2,6,23,0.6); display:none; align-items:center; justify-content:center; z-index:1400; }
         .modal-backdrop.open{ display:flex; }
@@ -78,6 +78,61 @@
         .admin-result{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 8px; border-radius:8px; cursor:pointer; }
         .admin-result:hover{ background: rgba(255,255,255,0.02); }
 
+        /* Map-style selector (cds-*) minimal styles reused for Assignments modal */
+        .custom-device-select{ position: relative; width:100%; box-sizing: border-box; }
+        .cds-toggle{ box-sizing: border-box; }
+        /* force full-width in stubborn layouts */
+        .custom-device-select, .cds-toggle { width:100% !important; }
+        /* Custom device dropdown styling copied from Map view to match sidebar language */
+        .cds-toggle{
+            display:flex; align-items:center; justify-content:space-between; gap:12px; width:100% !important;
+            background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03));
+            border: 1px solid rgba(255,255,255,0.04);
+            padding: 8px 12px; border-radius: 10px; color: #e6eef8; cursor: pointer; font-size:13px;
+        }
+        .cds-toggle .label{ width:100%; }
+        .cds-toggle .label{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#e6eef8; font-weight:600; }
+        .cds-right{ margin-left:auto; display:flex; align-items:center; gap:8px; }
+        .cds-caret{ width:18px; height:18px; display:flex; align-items:center; justify-content:center; transform:rotate(0deg); transition:transform .18s ease; opacity:0.95 }
+        .cds-open .cds-caret{ transform: rotate(180deg); }
+        .cds-caret svg{ width:12px; height:12px; fill: #9aa4b2; }
+
+        .cds-list{
+            position:absolute; right:0; left:0; top:calc(100% + 8px);
+            /* fully opaque background to match sidebar surface and avoid translucency */
+            background: #0b121c;
+            border:1px solid rgba(255,255,255,0.04); border-radius:12px; padding:8px; z-index:1300;
+            max-height:320px; overflow-y:auto; overflow-x:hidden; box-shadow: 0 16px 48px rgba(2,6,23,0.7);
+            box-sizing: border-box;
+        }
+        /* ensure the search input fits exactly inside the dropdown (avoid horizontal overflow) */
+        .cds-search{ display:block; width:100%; box-sizing:border-box; padding:8px 10px; margin-bottom:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); background: #0b121c; color:#e6eef8; }
+        /* ensure items container doesn't cause horizontal overflow */
+        .cds-list .cds-items{ width:100%; box-sizing:border-box; overflow-x:hidden; }
+         .cds-empty{ padding:8px; color:#9aa4b2; text-align:center; }
+         .cds-item{ padding:10px; border-radius:8px; color:#e6eef8; display:flex; align-items:center; gap:12px; cursor:pointer; }
+         .cds-item:hover{ background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02)); }
+        .cds-item.selected{ background: linear-gradient(180deg, rgba(90,179,255,0.08), rgba(90,179,255,0.02)); border:1px solid rgba(90,179,255,0.12); }
+        .cds-item .name{ font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .cds-item .id{ color:#9aa4b2; font-size:12px; margin-left:auto; }
+
+        /* Unified, pretty scrollbars for supported browsers (copied from Map.css) */
+        :root{
+            --scrollbar-thumb: rgba(255,255,255,0.04);
+            --scrollbar-thumb-hover: rgba(255,255,255,0.08);
+            --scrollbar-track: transparent;
+            --scrollbar-width: 10px;
+        }
+        .cds-list, .modal-card, .cds-list .cds-items {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.04) transparent;
+        }
+        .cds-list::-webkit-scrollbar, .modal-card::-webkit-scrollbar, .cds-list .cds-items::-webkit-scrollbar { width: 10px; height: 10px; }
+        .cds-list::-webkit-scrollbar-track, .modal-card::-webkit-scrollbar-track, .cds-list .cds-items::-webkit-scrollbar-track { background: transparent; }
+        .cds-list::-webkit-scrollbar-thumb, .modal-card::-webkit-scrollbar-thumb, .cds-list .cds-items::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.04); border-radius: 8px; border: 2px solid rgba(255,255,255,0.01); }
+        .cds-list:hover::-webkit-scrollbar-thumb, .modal-card:hover::-webkit-scrollbar-thumb, .cds-list .cds-items:hover::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); }
+        .cds-list:focus-visible::-webkit-scrollbar-thumb, .modal-card:focus-visible::-webkit-scrollbar-thumb, .cds-list .cds-items:focus-visible::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); outline: 2px solid rgba(90,179,255,0.08); }
+
         @@media (max-width:720px){ .card{ width:94vw; margin-top:18px; } table.devices thead{ display:none; } table.devices tbody td{ display:block; width:100%; } }
     </style>
 </head>
@@ -102,7 +157,6 @@
                         <tr>
                             <th>Device</th>
                             <th>IMEI</th>
-                            <th>Assigned Admins</th>
                             <th style="width:200px">Actions</th>
                         </tr>
                     </thead>
@@ -168,15 +222,8 @@
                     <input id="imei" type="text" />
                 </div>
 
-                <div class="form-row">
-                    <label>Assigned admins</label>
-                    <div class="admin-assign-list" id="assignedAdmins"></div>
-                    <div style="margin-top:8px;">
-                        <input id="adminSearch" class="search" placeholder="Search admins by email" />
-                        <div id="adminResults" class="admin-search-results" style="display:none;"></div>
-                    </div>
-                </div>
-            </form>
+                <!-- Removed device modal inline admin assignment UI: assignments are managed in the Assignments modal -->
+                </form>
         </div>
     </div>
 
@@ -211,11 +258,11 @@
         const toastContainer = document.getElementById('toastContainer');
 
         // Admin assignment UI
-        const assignedAdminsRoot = document.getElementById('assignedAdmins');
-        const adminSearchEl = document.getElementById('adminSearch');
-        const adminResultsEl = document.getElementById('adminResults');
+        // const assignedAdminsRoot = document.getElementById('assignedAdmins');
+        // const adminSearchEl = document.getElementById('adminSearch');
+        // const adminResultsEl = document.getElementById('adminResults');
 
-        let assignedAdmins = []; // array of { UserId, Email }
+        // let assignedAdmins = []; // array of { UserId, Email }
 
         // page selector custom UI (simple)
         const pageSizeWrap = document.getElementById('pageSizeWrap');
@@ -229,25 +276,10 @@
             t.setAttribute('role','status');
             t.textContent = message;
             const close = document.createElement('button'); close.type = 'button'; close.innerText = 'Close'; close.className = 'btn-ghost'; close.style.marginLeft = '8px';
-            close.addEventListener('click', ()=> t.remove());
+            close.addEventListener('click', () => t.remove());
             t.appendChild(close);
             toastContainer.appendChild(t);
-            if (duration > 0) setTimeout(()=>{ try{ t.remove(); }catch(e){} }, duration);
-        }
-
-        function renderAssignedAdmins(){
-            assignedAdminsRoot.innerHTML = '';
-            assignedAdmins.forEach(a => {
-                const wrap = document.createElement('div'); wrap.className = 'admin-badge';
-                const txt = document.createElement('span'); txt.innerText = a.Email ?? a.Email ?? String(a.UserId ?? a.userId ?? a.id ?? '');
-                const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'admin-remove'; btn.title = 'Unassign admin'; btn.innerText = '✕';
-                btn.addEventListener('click', ()=>{
-                    assignedAdmins = assignedAdmins.filter(x => (x.UserId ?? x.userId ?? x.id) !== (a.UserId ?? a.userId ?? a.id));
-                    renderAssignedAdmins();
-                });
-                wrap.appendChild(txt); wrap.appendChild(btn);
-                assignedAdminsRoot.appendChild(wrap);
-            });
+            if (duration > 0) setTimeout(() =>{ try{ t.remove(); }catch(e){} }, duration);
         }
 
         // Admin search
@@ -266,58 +298,25 @@
             } catch (e){ console.warn('fetchAdmins error', e); return []; }
         }
 
-        let adminSearchToken = 0;
-        const doAdminSearch = debounce(async ()=>{
-            const q = (adminSearchEl.value || '').trim();
-            adminResultsEl.innerHTML = '';
-            if (!q){ adminResultsEl.style.display = 'none'; return; }
-            adminResultsEl.style.display = '';
-            const token = ++adminSearchToken;
-            const results = await fetchAdmins(q);
-            if (token !== adminSearchToken) return; // stale
-            if (!results || results.length === 0){ adminResultsEl.innerHTML = '<div class="admin-result" style="justify-content:center;color:#9aa4b2">No admins</div>'; return; }
-            results.forEach(r => {
-                const id = r.UserId ?? r.userId ?? r.id ?? r.Id ?? null;
-                const email = r.Email ?? r.email ?? r.EmailAddress ?? String(id ?? '');
-                const row = document.createElement('div'); row.className = 'admin-result';
-                const left = document.createElement('div'); left.style.overflow='hidden'; left.style.textOverflow='ellipsis'; left.style.whiteSpace='nowrap'; left.style.flex='1'; left.innerText = email;
-                const btn = document.createElement('button'); btn.type='button'; btn.className='btn-ghost'; btn.innerText='Add';
-                btn.addEventListener('click', ()=>{
-                    // avoid duplicates
-                    const exists = assignedAdmins.some(x => (x.UserId ?? x.userId ?? x.id) === id);
-                    if (exists) { showToast('Admin already assigned'); return; }
-                    assignedAdmins.push({ UserId: id, Email: email });
-                    renderAssignedAdmins();
-                });
-                row.appendChild(left); row.appendChild(btn);
-                adminResultsEl.appendChild(row);
-            });
-        }, 300);
-
-        adminSearchEl.addEventListener('input', doAdminSearch);
-        adminSearchEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter'){ e.preventDefault(); doAdminSearch(); } });
-
         // Modal open/close
         function openModal(mode, device){
             try { lastFocusedEl = document.activeElement; } catch (e) {}
             modalBackdrop.classList.add('open'); modalBackdrop.setAttribute('aria-hidden','false'); document.body.style.overflow = 'hidden';
             if (mode === 'create'){
-                modalTitle.innerText = 'Create device'; deviceIdEl.value = ''; deviceNameEl.value = ''; imeiEl.value = ''; assignedAdmins = []; renderAssignedAdmins(); deviceNameEl.focus();
+                modalTitle.innerText = 'Create device'; deviceIdEl.value = ''; deviceNameEl.value = ''; imeiEl.value = ''; deviceNameEl.focus();
             } else {
                 modalTitle.innerText = 'Edit device';
                 const id = device.DeviceId ?? device.deviceId ?? device.id ?? device.Id ?? null;
-                if (!id){ deviceIdEl.value = device.DeviceId ?? device.deviceId ?? device.id ?? ''; deviceNameEl.value = device.DeviceName ?? device.deviceName ?? device.name ?? ''; imeiEl.value = device.IMEI ?? device.Imei ?? device.imei ?? ''; assignedAdmins = (device.AssignedAdmins || device.Admins || device.AdminIds || []).map(a => ({ UserId: a.UserId ?? a.userId ?? a.id ?? a, Email: a.Email ?? a.email ?? String(a.userId ?? a.id ?? a) })); renderAssignedAdmins(); deviceNameEl.focus(); }
+                if (!id){ deviceIdEl.value = device.DeviceId ?? device.deviceId ?? device.id ?? ''; deviceNameEl.value = device.DeviceName ?? device.deviceName ?? device.name ?? ''; imeiEl.value = device.IMEI ?? device.Imei ?? device.imei ?? ''; deviceNameEl.focus(); }
                 else {
                     // fetch the single device for freshest data
                     (async ()=>{
                         modalSave.disabled = true; modalSave.setAttribute('aria-busy','true');
                         try{
                             const resp = await fetch(`/v1/admin/devices/${encodeURIComponent(id)}`, { cache: 'no-store' });
-                            if (resp.ok){ const data = await resp.json(); const d = Array.isArray(data) ? data[0] : data; deviceIdEl.value = d.DeviceId ?? d.deviceId ?? d.id ?? id; deviceNameEl.value = d.DeviceName ?? d.deviceName ?? d.name ?? ''; imeiEl.value = d.IMEI ?? d.Imei ?? d.imei ?? ''; const adminsSrc = d.AssignedAdmins ?? d.Admins ?? d.AdminIds ?? d.admins ?? [];
-                                if (Array.isArray(adminsSrc)) assignedAdmins = adminsSrc.map(a => ({ UserId: a.UserId ?? a.userId ?? a.id ?? a, Email: a.Email ?? a.email ?? String(a.userId ?? a.id ?? a) })); else assignedAdmins = [];
-                                renderAssignedAdmins();
-                            } else { showToast('Failed to load device details; using provided values', { type: 'error' }); deviceIdEl.value = id; deviceNameEl.value = device.DeviceName ?? device.deviceName ?? device.name ?? ''; imeiEl.value = device.IMEI ?? device.Imei ?? device.imei ?? ''; assignedAdmins = (device.AssignedAdmins || device.Admins || []).map(a => ({ UserId: a.UserId ?? a.userId ?? a.id ?? a, Email: a.Email ?? a.email ?? String(a.userId ?? a.id ?? a) })); renderAssignedAdmins(); }
-                        } catch (e){ console.warn('openModal fetch device', e); deviceIdEl.value = id; deviceNameEl.value = device.DeviceName ?? device.deviceName ?? device.name ?? ''; imeiEl.value = device.IMEI ?? device.Imei ?? device.imei ?? ''; assignedAdmins = (device.AssignedAdmins || device.Admins || []).map(a => ({ UserId: a.UserId ?? a.userId ?? a.id ?? a, Email: a.Email ?? a.email ?? String(a.userId ?? a.id ?? a) })); renderAssignedAdmins(); }
+                            if (resp.ok){ const data = await resp.json(); const d = Array.isArray(data) ? data[0] : data; deviceIdEl.value = d.DeviceId ?? d.deviceId ?? d.id ?? id; deviceNameEl.value = d.DeviceName ?? d.deviceName ?? d.name ?? ''; imeiEl.value = d.IMEI ?? d.Imei ?? d.imei ?? ''; }
+                            else { showToast('Failed to load device details; using provided values', { type: 'error' }); deviceIdEl.value = id; deviceNameEl.value = device.DeviceName ?? device.deviceName ?? device.name ?? ''; imeiEl.value = device.IMEI ?? device.Imei ?? device.imei ?? ''; }
+                        } catch (e){ console.warn('openModal fetch device', e); deviceIdEl.value = id; deviceNameEl.value = device.DeviceName ?? device.deviceName ?? device.name ?? ''; imeiEl.value = device.IMEI ?? device.Imei ?? device.imei ?? ''; }
                         finally{ modalSave.disabled = false; modalSave.removeAttribute('aria-busy'); deviceNameEl.focus(); }
                     })();
                 }
@@ -349,7 +348,7 @@
 
         function renderDevices(items){
             devicesTableBody.innerHTML = '';
-            if (!items || items.length === 0){ const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 4; td.style.color = '#9aa4b2'; td.innerText = 'No devices'; tr.appendChild(td); devicesTableBody.appendChild(tr); return; }
+            if (!items || items.length === 0){ const tr = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = 3; td.style.color = '#9aa4b2'; td.innerText = 'No devices'; tr.appendChild(td); devicesTableBody.appendChild(tr); return; }
 
             items.forEach(d => {
                 const tr = document.createElement('tr');
@@ -357,27 +356,18 @@
                 const nameTd = document.createElement('td');
                 const nameWrap = document.createElement('div');
                 const title = document.createElement('div'); title.style.fontWeight = '700'; title.style.marginBottom = '6px'; title.innerText = d.DeviceName ?? d.deviceName ?? d.Name ?? d.name ?? '';
-                const adminsWrapper = document.createElement('div'); adminsWrapper.style.display = 'flex'; adminsWrapper.style.flexWrap = 'wrap'; adminsWrapper.style.gap = '8px';
-                const admins = d.AssignedAdmins ?? d.Admins ?? d.AdminIds ?? d.admins ?? [];
-                if (Array.isArray(admins) && admins.length){
-                    admins.forEach(a => {
-                        const badge = document.createElement('span'); badge.className = 'admin-badge'; const email = a.Email ?? a.email ?? a.EmailAddress ?? String(a.UserId ?? a.userId ?? a.id ?? ''); badge.innerText = email; adminsWrapper.appendChild(badge);
-                    });
-                } else {
-                    const span = document.createElement('div'); span.style.color = '#9aa4b2'; span.innerText = 'No assigned admins'; adminsWrapper.appendChild(span);
-                }
-                nameWrap.appendChild(title); nameWrap.appendChild(adminsWrapper); nameTd.appendChild(nameWrap);
+                // Do not render assigned admin lists in the table; they are shown only in modals.
+                nameWrap.appendChild(title);
+                nameTd.appendChild(nameWrap);
 
                 const imeiTd = document.createElement('td'); imeiTd.innerText = d.IMEI ?? d.Imei ?? d.imei ?? '';
-                // Keep the Assigned Admins column for backward compatibility but show a count there
-                const assignedCountTd = document.createElement('td'); assignedCountTd.style.color = '#9aa4b2'; assignedCountTd.innerText = Array.isArray(admins) ? String(admins.length) : '0';
                 const actionsTd = document.createElement('td'); actionsTd.style.display='flex'; actionsTd.style.gap='8px';
                 const edit = document.createElement('button'); edit.className='btn-ghost'; edit.innerText='Edit'; edit.addEventListener('click', (e)=>{ lastFocusedEl = e.currentTarget; openModal('edit', d); });
                 const assignBtn = document.createElement('button'); assignBtn.className='btn-ghost'; assignBtn.innerText='Assignments'; assignBtn.addEventListener('click', (e)=>{ lastFocusedEl = e.currentTarget; openAssignmentsModal(d); });
                 const del = document.createElement('button'); del.className='btn-danger'; del.innerText='Delete'; del.addEventListener('click', (e)=> deleteDevice(d, e.currentTarget));
                 actionsTd.appendChild(edit); actionsTd.appendChild(assignBtn); actionsTd.appendChild(del);
 
-                tr.appendChild(nameTd); tr.appendChild(imeiTd); tr.appendChild(assignedCountTd); tr.appendChild(actionsTd);
+                tr.appendChild(nameTd); tr.appendChild(imeiTd); tr.appendChild(actionsTd);
                 devicesTableBody.appendChild(tr);
             });
 
@@ -404,7 +394,7 @@
         searchInput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter'){ e.preventDefault(); offset = 0; fetchDevices(); } });
 
         modalSave.addEventListener('click', async (e)=>{
-            e.preventDefault(); const id = deviceIdEl.value && deviceIdEl.value.trim(); const payload = { DeviceId: id || undefined, DeviceName: deviceNameEl.value.trim(), IMEI: imeiEl.value.trim(), AdminIds: assignedAdmins.map(a => a.UserId ?? a.userId ?? a.id) };
+            e.preventDefault(); const id = deviceIdEl.value && deviceIdEl.value.trim(); const payload = { DeviceId: id || undefined, DeviceName: deviceNameEl.value.trim(), IMEI: imeiEl.value.trim() };
             try{
                 if (!payload.DeviceName){ showToast('Device name is required', { type:'error' }); deviceNameEl.focus(); return; }
                 modalSave.disabled = true; modalSave.setAttribute('aria-busy','true');
@@ -455,15 +445,30 @@
                 </div>
                 <div style="margin-top:12px;">
                     <input type="hidden" id="assignDeviceId" />
+                    <!-- Selector replaced with Map-style custom selector (cds-toggle) but adapted for admin search -->
+                    <div style="margin-bottom:10px;">
+                        <label style="color:#9aa4b2;font-size:13px;display:block;margin-bottom:6px;">Add admin</label>
+                        <div id="assignSelectorRoot" class="custom-device-select" style="position:relative;">
+                            <div class="cds-toggle" tabindex="0" role="button" aria-haspopup="listbox">
+                                <div style="display:flex;flex-direction:column;min-width:0;">
+                                    <div class="label">Select admin to assign...</div>
+                                    <div class="sub" style="display:none;">&nbsp;</div>
+                                </div>
+                                <div class="cds-right"><div class="cds-caret">
+                                    <!-- caret svg to match Map selector visuals -->
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 10l5 5 5-5z"/></svg>
+                                </div></div>
+                            </div>
+                            <div class="cds-list" style="display:none;">
+                                <input id="assignSelectorSearch" class="cds-search" placeholder="Search admins by email" />
+                                <div class="cds-items" id="assignSelectorItems"></div>
+                            </div>
+                        </div>
+                    </div>
                     <div style="font-weight:600;color:#e6eef8;margin-bottom:8px;" id="assignDeviceName"></div>
                     <div style="margin-bottom:8px;">
-                        <label style="color:#9aa4b2;font-size:13px;display:block;margin-bottom:6px;">Assigned admins</label>
+                        <label style="color:#9aa4b2;font-size:13px;display:block;margin-bottom:6px;">Device users</label>
                         <div id="assignAssignedAdmins" style="display:flex;flex-wrap:wrap;gap:8px"></div>
-                    </div>
-                    <div>
-                        <label style="color:#9aa4b2;font-size:13px;display:block;margin-bottom:6px;">Add admin</label>
-                        <input id="assignAdminSearch" class="search" placeholder="Search admins by email" />
-                        <div id="assignAdminResults" class="admin-search-results" style="display:none;margin-top:8px;"></div>
                     </div>
                 </div>
             </div>
@@ -476,17 +481,26 @@
         const assignDeviceIdEl = document.getElementById('assignDeviceId');
         const assignDeviceNameEl = document.getElementById('assignDeviceName');
         const assignAssignedAdminsRoot = document.getElementById('assignAssignedAdmins');
-        const assignAdminSearchEl = document.getElementById('assignAdminSearch');
-        const assignAdminResultsEl = document.getElementById('assignAdminResults');
+        // selector elements (Map-style selector adapted)
+        const assignSelectorRoot = document.getElementById('assignSelectorRoot');
+        const assignSelectorToggle = assignSelectorRoot && assignSelectorRoot.querySelector('.cds-toggle');
+        const assignSelectorList = assignSelectorRoot && assignSelectorRoot.querySelector('.cds-list');
+        const assignSelectorSearch = document.getElementById('assignSelectorSearch');
+        const assignSelectorItems = document.getElementById('assignSelectorItems');
+
+        // ensure toggle has aria-expanded for accessibility
+        if (assignSelectorToggle && !assignSelectorToggle.hasAttribute('aria-expanded')){
+            try{ assignSelectorToggle.setAttribute('aria-expanded','false'); }catch(e){}
+        }
 
         let currentAssignDeviceId = null;
         let currentAssignAdmins = []; // array of { UserId, Email, DeviceAssignmentId? }
 
         function renderAssignAssignedAdmins(){
             assignAssignedAdminsRoot.innerHTML = '';
-            if (!currentAssignAdmins || currentAssignAdmins.length === 0){ const s = document.createElement('div'); s.style.color='#9aa4b2'; s.innerText = 'No assigned admins'; assignAssignedAdminsRoot.appendChild(s); return; }
+            if (!currentAssignAdmins || currentAssignAdmins.length === 0){ const s = document.createElement('div'); s.style.color='#9aa4b2'; s.innerText = 'No device users'; assignAssignedAdminsRoot.appendChild(s); return; }
             currentAssignAdmins.forEach(a => {
-                const wrap = document.createElement('div'); wrap.className = 'admin-badge'; wrap.style.display='inline-flex'; const txt = document.createElement('span'); txt.innerText = a.Email ?? String(a.UserId ?? a.userId ?? a.id ?? ''); const btn = document.createElement('button'); btn.type='button'; btn.className='admin-remove'; btn.innerText='✕'; btn.addEventListener('click', async ()=>{
+                const wrap = document.createElement('div'); wrap.className = 'admin-badge'; wrap.style.display='inline-flex'; const txt = document.createElement('span'); txt.innerText = a.Email ?? String(a.UserId ?? a.userId ?? a.id ?? ''); const btn = document.createElement('button'); btn.type='button'; btn.className='admin-remove'; btn.innerText='✕'; btn.addEventListener('click', async () =>{
                     // attempt to delete the assignment by DeviceAssignmentId if present, otherwise ask server to remove by user id
                     if (!currentAssignDeviceId) return;
                     if (!confirm('Unassign admin ' + (a.Email ?? a.UserId) + '?')) return;
@@ -498,7 +512,7 @@
                             // fallback: try delete endpoint with user id in path (not defined) - instead request server to delete by searching assignments list
                             // We'll fetch assignments and find matching DeviceAssignmentId then delete
                             const assignments = await fetchAssignmentsForDevice(currentAssignDeviceId);
-                            const match = assignments.find(x => (x.UserId == (a.UserId ?? a.userId ?? a.id)));
+                            const match = assignments.find(x => (x.UserId === (a.UserId ?? a.userId ?? a.id)));
                             if (match && match.DeviceAssignmentId){ const resp = await fetch(`/v1/admin/devices/${encodeURIComponent(currentAssignDeviceId)}/assignments/${encodeURIComponent(match.DeviceAssignmentId)}`, { method: 'DELETE' }); if (!resp.ok){ const txt = await resp.text().catch(()=>null); showToast('Unassign failed: '+(txt||resp.status), { type:'error' }); return; } }
                             else { showToast('Could not determine assignment id to delete', { type:'error' }); return; }
                         }
@@ -523,80 +537,217 @@
         async function loadAssignmentsForModal(deviceId){
             currentAssignAdmins = [];
             try{
-                // prefer device details with assigned admin emails
+                // prefer device details with assigned admin ids
                 const resp = await fetch(`/v1/admin/devices/${encodeURIComponent(deviceId)}`, { cache: 'no-store' });
+                let ids;
                 if (resp.ok){ const dd = await resp.json(); const dev = Array.isArray(dd) ? dd[0] : dd; const adminsSrc = dev.AssignedAdmins ?? dev.Admins ?? dev.AdminIds ?? dev.admins ?? [];
                     if (Array.isArray(adminsSrc) && adminsSrc.length){
-                        currentAssignAdmins = adminsSrc.map(a => ({ UserId: a.UserId ?? a.userId ?? a.id ?? a.UserId ?? a, Email: a.Email ?? a.email ?? String(a.UserId ?? a.userId ?? a.id ?? '') , DeviceAssignmentId: a.DeviceAssignmentId ?? a.deviceAssignmentId ?? a.DeviceAssignmentId }));
-                    } else {
-                        // try assignments endpoint and then attempt to resolve user emails (best-effort)
-                        const assignments = await fetchAssignmentsForDevice(deviceId);
-                        currentAssignAdmins = assignments.map(a => ({ UserId: a.UserId ?? a.userId ?? a.UserId, DeviceAssignmentId: a.DeviceAssignmentId ?? a.deviceAssignmentId ?? a.Id }));
-                        // try to fetch user emails for these ids via admin search endpoint by id (best-effort skipped here)
+                        // normalize to UserId and DeviceAssignmentId (if present)
+                        currentAssignAdmins = adminsSrc.map(a => ({ UserId: a.UserId ?? a.userId ?? a.id ?? a, DeviceAssignmentId: a.DeviceAssignmentId ?? a.deviceAssignmentId ?? a.DeviceAssignmentId }));
                     }
-                } else {
+                }
+                // if still empty, fallback to assignments endpoint
+                if (!currentAssignAdmins.length){
                     const assignments = await fetchAssignmentsForDevice(deviceId);
                     currentAssignAdmins = assignments.map(a => ({ UserId: a.UserId ?? a.userId ?? a.UserId, DeviceAssignmentId: a.DeviceAssignmentId ?? a.deviceAssignmentId ?? a.Id }));
+                }
+                // resolve emails for the gathered user ids
+                ids = currentAssignAdmins.map(a => a.UserId).filter(Boolean);
+                if (ids.length){
+                    const users = await fetchUsersByIds(ids);
+                    const byId = {};
+                    users.forEach(u => { const id = u.UserId ?? u.userId ?? u.id ?? u.Id ?? null; if (id) byId[id] = u; });
+                    currentAssignAdmins = currentAssignAdmins.map(a => ({ ...a, Email: (byId[a.UserId] && (byId[a.UserId].Email ?? byId[a.UserId].email)) || a.Email || String(a.UserId) }));
                 }
             } catch (e){ console.warn('loadAssignmentsForModal', e); }
             renderAssignAssignedAdmins();
         }
 
-        function openAssignmentsModal(device){
-            try { lastFocusedEl = document.activeElement; } catch (e){}
-            assignModalBackdrop.classList.add('open'); assignModalBackdrop.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden';
-            const id = device.DeviceId ?? device.deviceId ?? device.id ?? device.Id ?? null;
-            currentAssignDeviceId = id;
-            assignDeviceIdEl.value = id || '';
-            assignDeviceNameEl.innerText = device.DeviceName ?? device.deviceName ?? device.Name ?? device.name ?? '';
-            loadAssignmentsForModal(id);
-            assignAdminSearchEl.focus();
+        // helper: fetch user details by ids using the server endpoint
+        async function fetchUsersByIds(userIds){
+            try{
+                if (!userIds || userIds.length === 0) return [];
+                const q = userIds.map(id => encodeURIComponent(id)).join(',');
+                const url = `/v1/admin/users?userIds=${q}`;
+                const resp = await fetch(url, { cache: 'no-store' });
+                if (!resp.ok) return [];
+                const data = await resp.json();
+                if (Array.isArray(data)) return data;
+                if (Array.isArray(data.Users)) return data.Users;
+                if (Array.isArray(data.users)) return data.users;
+                return [];
+            } catch (e){ console.warn('fetchUsersByIds', e); return []; }
         }
 
-        function closeAssignmentsModal(){ assignModalBackdrop.classList.remove('open'); assignModalBackdrop.setAttribute('aria-hidden','true'); document.body.style.overflow=''; try{ if (lastFocusedEl && typeof lastFocusedEl.focus === 'function') lastFocusedEl.focus(); }catch(e){} }
-
-        assignModalCancel.addEventListener('click', ()=> closeAssignmentsModal());
-        assignModalBackdrop.addEventListener('click', (e)=>{ if (e.target === assignModalBackdrop) closeAssignmentsModal(); });
-
-        // search / add admin inside assignments modal (reuse fetchAdmins)
+        // New selector-driven assign search/assign logic (Map-style selector adapted)
         let assignSearchToken = 0;
-        const doAssignAdminSearch = debounce(async ()=>{
-            const q = (assignAdminSearchEl.value || '').trim(); assignAdminResultsEl.innerHTML = '';
-            if (!q){ assignAdminResultsEl.style.display='none'; return; }
-            assignAdminResultsEl.style.display='';
-            const token = ++assignSearchToken; const results = await fetchAdmins(q); if (token !== assignSearchToken) return;
-            if (!results || results.length === 0){ assignAdminResultsEl.innerHTML = '<div class="admin-result" style="justify-content:center;color:#9aa4b2">No admins</div>'; return; }
+        let assignItemNodes = []; // for keyboard navigation
+        let assignFocusedIndex = -1;
+
+        // small helper to escape text (used by selector rendering)
+        function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]); }
+
+        // populate items into the .cds-items element
+        async function doAssignSelectorSearchPopulate(q){
+            assignSelectorItems.innerHTML = '';
+            assignItemNodes = [];
+            assignFocusedIndex = -1;
+            if (!q){
+                // show empty prompt
+                const empty = document.createElement('div'); empty.className = 'cds-empty'; empty.innerText = 'Type to search admins'; assignSelectorItems.appendChild(empty); return;
+            }
+            const token = ++assignSearchToken;
+            const results = await fetchAdmins(q);
+            if (token !== assignSearchToken) return;
+            if (!results || results.length === 0){ const e = document.createElement('div'); e.className = 'cds-empty'; e.innerText = 'No admins'; assignSelectorItems.appendChild(e); return; }
             results.forEach(r => {
                 const id = r.UserId ?? r.userId ?? r.id ?? r.Id ?? null; const email = r.Email ?? r.email ?? r.EmailAddress ?? String(id ?? '');
-                const row = document.createElement('div'); row.className = 'admin-result'; const left = document.createElement('div'); left.style.overflow='hidden'; left.style.textOverflow='ellipsis'; left.style.whiteSpace='nowrap'; left.style.flex='1'; left.innerText = email; const btn = document.createElement('button'); btn.type='button'; btn.className='btn-ghost'; btn.innerText='Add'; btn.addEventListener('click', async ()=>{
-                    if (!currentAssignDeviceId) return; const exists = currentAssignAdmins.some(x => (x.UserId == id)); if (exists){ showToast('Admin already assigned'); return; }
+                const it = document.createElement('div'); it.className = 'cds-item'; it.tabIndex = -1; it.dataset.value = id ?? '';
+                it.innerHTML = `<div class="name">${escapeHtml(email)}</div><div class="id">${escapeHtml(String(id ?? ''))}</div>`;
+                it.addEventListener('click', async ()=>{
+                    if (!currentAssignDeviceId) return; const exists = currentAssignAdmins.some(x => (x.UserId === id)); if (exists){ showToast('Admin already assigned'); closeAssignSelector(); return; }
                     try{
                         const payload = { UserId: id, DeviceId: currentAssignDeviceId };
                         const resp = await fetch(`/v1/admin/devices/${encodeURIComponent(currentAssignDeviceId)}/assignments`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-                        if (resp.ok){ showToast('Admin assigned'); await loadAssignmentsForModal(currentAssignDeviceId); fetchDevices(); }
-                        else { const txt = await resp.text().catch(()=>null); showToast('Assign failed: '+(txt||resp.status), { type:'error' }); }
+                        if (resp.ok){
+                            // update visible label to reflect assigned admin (matches Map selector behavior)
+                            try{
+                                const lbl = assignSelectorToggle && assignSelectorToggle.querySelector('.label');
+                                if (lbl) lbl.innerText = 'Assigned: ' + String(email);
+                            } catch(e){}
+                            showToast('Admin assigned');
+                            await loadAssignmentsForModal(currentAssignDeviceId);
+                            fetchDevices();
+                            closeAssignSelector();
+                        } else { const txt = await resp.text().catch(()=>null); showToast('Assign failed: '+(txt||resp.status), { type:'error' }); }
                     } catch (e){ console.error(e); showToast('Assign failed', { type:'error' }); }
                 });
-                row.appendChild(left); row.appendChild(btn); assignAdminResultsEl.appendChild(row);
+                assignSelectorItems.appendChild(it);
+                assignItemNodes.push({ el: it, id: String(id ?? ''), label: String(email).toLowerCase() });
             });
-        }, 300);
+        }
 
-        assignAdminSearchEl.addEventListener('input', doAssignAdminSearch);
-        assignAdminSearchEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter'){ e.preventDefault(); doAssignAdminSearch(); } });
+        // keyboard navigation helpers for assign selector
+        function assignFocusIndex(idx){
+            if (!assignItemNodes || assignItemNodes.length === 0) return;
+            if (assignFocusedIndex >= 0 && assignItemNodes[assignFocusedIndex]) assignItemNodes[assignFocusedIndex].el.classList.remove('focused');
+            assignFocusedIndex = Math.max(0, Math.min(idx, assignItemNodes.length - 1));
+            const node = assignItemNodes[assignFocusedIndex];
+            if (node){ node.el.classList.add('focused'); node.el.scrollIntoView({ block: 'nearest' }); node.el.focus(); }
+        }
 
-        // close assign modal when pressing Escape
-        document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && assignModalBackdrop.classList.contains('open')) closeAssignmentsModal(); });
+        if (assignSelectorRoot){
+            assignSelectorRoot.addEventListener('keydown', (ev) => {
+                if (ev.key === 'ArrowDown') { ev.preventDefault(); if (!assignItemNodes || assignItemNodes.length === 0) return; openAssignSelector(); assignFocusIndex(assignFocusedIndex + 1); }
+                else if (ev.key === 'ArrowUp') { ev.preventDefault(); if (!assignItemNodes || assignItemNodes.length === 0) return; openAssignSelector(); assignFocusIndex(assignFocusedIndex - 1); }
+                else if (ev.key === 'Enter') { ev.preventDefault(); if (assignFocusedIndex >= 0 && assignItemNodes[assignFocusedIndex]) assignItemNodes[assignFocusedIndex].el.click(); }
+                else if (ev.key === 'Escape') { closeAssignSelector(); }
+            });
+        }
+
+        // --- NEW: implement open/close/toggle and wire selector interactions ---
+        // These were missing and caused errors when trying to open/type in the selector.
+        function openAssignSelector(){
+            try{
+                if (!assignSelectorList || !assignSelectorRoot) return;
+                assignSelectorList.style.display = '';
+                assignSelectorRoot.classList.add('cds-open');
+                if (assignSelectorToggle) try{ assignSelectorToggle.setAttribute('aria-expanded','true'); } catch(e){}
+                // populate existing value or show prompt
+                try { doAssignSelectorSearchPopulate(assignSelectorSearch && assignSelectorSearch.value ? assignSelectorSearch.value.trim() : ''); } catch (e) {}
+                // focus search input so typing works immediately
+                try { if (assignSelectorSearch) assignSelectorSearch.focus(); } catch (e) {}
+            } catch(e){ console.warn('openAssignSelector', e); }
+        }
+
+        function closeAssignSelector(){
+            try{
+                if (!assignSelectorList || !assignSelectorRoot) return;
+                assignSelectorList.style.display = 'none';
+                assignSelectorRoot.classList.remove('cds-open');
+                if (assignSelectorToggle) try{ assignSelectorToggle.setAttribute('aria-expanded','false'); } catch(e){}
+                // reset items state
+                assignItemNodes = [];
+                assignFocusedIndex = -1;
+            } catch(e){ console.warn('closeAssignSelector', e); }
+        }
+
+        function toggleAssignSelector(){
+            try{
+                if (!assignSelectorList) return;
+                const isHidden = getComputedStyle(assignSelectorList).display === 'none';
+                if (isHidden) openAssignSelector(); else closeAssignSelector();
+            } catch(e){ console.warn('toggleAssignSelector', e); }
+        }
+
+        // Wire click on toggle to open/close and handle keyboard on toggle
+        if (assignSelectorToggle){
+            assignSelectorToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleAssignSelector(); });
+            assignSelectorToggle.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleAssignSelector(); }
+                if (e.key === 'ArrowDown') { e.preventDefault(); openAssignSelector(); try{ if (assignSelectorSearch) assignSelectorSearch.focus(); } catch(e){} }
+            });
+        }
+
+        // Debounced search wiring so typing in the selector triggers searches
+        if (assignSelectorSearch){
+            const debouncedAssignSearch = debounce(() => { try { doAssignSelectorSearchPopulate(assignSelectorSearch.value.trim()); } catch (e) { console.warn(e); } }, 220);
+            assignSelectorSearch.addEventListener('input', debouncedAssignSearch);
+            assignSelectorSearch.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowDown') { e.preventDefault(); assignFocusIndex(0); }
+                else if (e.key === 'Escape') { e.preventDefault(); closeAssignSelector(); }
+            });
+        }
+
+        // Close selector when clicking outside
+        document.addEventListener('click', (e) => { try { if (!assignSelectorRoot) return; if (!assignSelectorRoot.contains(e.target)) closeAssignSelector(); } catch (e) {} });
+
+        // Wire assign modal close handlers (fix: previously missing handlers so modal could not be closed)
+        function closeAssignModal(){
+            try {
+                if (assignModalBackdrop) {
+                    assignModalBackdrop.classList.remove('open');
+                    assignModalBackdrop.setAttribute('aria-hidden','true');
+                    document.body.style.overflow = '';
+                }
+            } catch(e){}
+            // also close the selector and restore focus to the element that opened the modal
+            try { closeAssignSelector(); } catch(e){}
+            try { if (lastFocusedEl && typeof lastFocusedEl.focus === 'function') lastFocusedEl.focus(); } catch(e){}
+        }
+        if (assignModalCancel) assignModalCancel.addEventListener('click', (e)=>{ e.preventDefault(); closeAssignModal(); });
+        if (assignModalBackdrop) assignModalBackdrop.addEventListener('click', (e)=>{ if (e.target === assignModalBackdrop) closeAssignModal(); });
+        document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && assignModalBackdrop && assignModalBackdrop.classList.contains('open')) { closeAssignModal(); } });
+
+        function openAssignmentsModal(device){
+            try { lastFocusedEl = document.activeElement; } catch (e){}
+
+            let backdrop = typeof assignModalBackdrop !== 'undefined' ? assignModalBackdrop : null;
+            if (!backdrop){
+                showToast('Unable to open Assignments modal (DOM not present)', { type:'error' });
+                return;
+            }
+
+            console.log('Opening Assignments modal for device', device);
+            backdrop.classList.add('open'); backdrop.setAttribute('aria-hidden','false'); document.body.style.overflow = 'hidden';
+
+            const id = device.DeviceId ?? device.deviceId ?? device.id ?? device.Id ?? null;
+            currentAssignDeviceId = id;
+            try{ assignDeviceIdEl.value = id || ''; } catch(e){}
+            try{ assignDeviceNameEl.innerText = device.DeviceName ?? device.deviceName ?? device.Name ?? device.name ?? ''; } catch(e){}
+            try{ if (typeof loadAssignmentsForModal === 'function') loadAssignmentsForModal(id); else console.warn('loadAssignmentsForModal not available'); } catch (e){ console.warn('Error loading assignments for modal', e); }
+            // focus selector when opened
+            try{ if (assignSelectorToggle) assignSelectorToggle.focus(); } catch(e){}
+        }
+
+        // expose for debugging/console use in case callers expect a global
+        try {
+            if (typeof window !== 'undefined') window.openAssignmentsModal = openAssignmentsModal;
+        } catch (e) { /* ignore in non-browser environments */ }
 
         // init
-        updatePageSizeDisplay = function(){ try { pageSizeDisplay.innerText = pageSizeEl.value || '10'; } catch (e) {} };
-        updatePageSizeDisplay();
-
-        // Close custom page options on outside click
-        document.addEventListener('click', (e)=>{ if (!pageSizeWrap.contains(e.target)) pageSizeOptions.classList.remove('open'); });
-
         fetchDevices();
     })();
     </script>
 </body>
 </html>
-
