@@ -272,6 +272,8 @@
             let lastFocusedEl = null;
             // Only restore focus to the role selector when the options were explicitly opened by the user
             let roleOptionsShouldRestoreFocus = false;
+            // Only restore focus to the page-size selector when its options were explicitly opened by the user
+            let pageOptionsShouldRestoreFocus = false;
 
             const usersTableBody = document.querySelector('#usersTable tbody');
             const prevPageBtn = document.getElementById('prevPage');
@@ -344,11 +346,17 @@
                 pageSizeOptions.classList.add('open');
                 if (pageSizeWrap) pageSizeWrap.setAttribute('aria-expanded','true');
                 try { pageSizeOptions.focus(); } catch (e) {}
+                // remember the user opened the page options so closing should restore focus
+                pageOptionsShouldRestoreFocus = true;
             }
             function closePageOptions(){
                 pageSizeOptions.classList.remove('open');
                 if (pageSizeWrap) pageSizeWrap.setAttribute('aria-expanded','false');
-                try { pageSizeWrap.focus(); } catch (e) {}
+                // only restore focus to the page-size UI when the options were opened by the user
+                if (pageOptionsShouldRestoreFocus && pageSizeWrap) {
+                    try { pageSizeWrap.focus(); } catch (e) {}
+                }
+                pageOptionsShouldRestoreFocus = false;
             }
 
             // Wire interactions
@@ -431,10 +439,41 @@
             async function openModal(mode, user){
                  // remember opener so we can restore focus when modal closes
                  try { lastFocusedEl = document.activeElement; } catch (e) {}
+                // Prevent any custom selector logic from restoring focus while the modal opens.
+                // This avoids a race where the document-level click handler closes selectors and
+                // restores focus to the page-size control when the user clicked an Edit/Create button.
+                try {
+                    pageOptionsShouldRestoreFocus = false;
+                    roleOptionsShouldRestoreFocus = false;
+                    // ensure visual popups are closed
+                    if (roleOptions && roleOptions.classList.contains('open')) roleOptions.classList.remove('open');
+                    if (roleSelectWrap) roleSelectWrap.setAttribute('aria-expanded','false');
+                    if (pageSizeOptions && pageSizeOptions.classList.contains('open')) pageSizeOptions.classList.remove('open');
+                    if (pageSizeWrap) pageSizeWrap.setAttribute('aria-expanded','false');
+                } catch (e) { /* ignore */ }
                 modalBackdrop.classList.add('open');
                 modalBackdrop.setAttribute('aria-hidden','false');
                 // prevent background scroll while modal is open
                 document.body.style.overflow = 'hidden';
+
+                // Small delay to ensure the DOM is updated and any ongoing event processing
+                // (like a click that triggered opening) has completed before moving focus.
+                // This avoids cases where focus() silently fails because of timing/race.
+                // Robust focus helper: try several times with short delays and use preventScroll.
+                const focusEmailSafely = (attempts = 4, delay = 40) => {
+                    const tryFocus = (remaining) => {
+                        try {
+                            if (emailEl && typeof emailEl.focus === 'function') {
+                                // prefer preventScroll to avoid unexpected page jumps
+                                try { emailEl.focus({ preventScroll: true }); } catch (e) { emailEl.focus(); }
+                                // also select the input contents when possible so the caret is visible
+                                try { if (typeof emailEl.select === 'function') emailEl.select(); } catch (e) {}
+                            }
+                        } catch (e) { /* ignore */ }
+                        if (remaining > 0) setTimeout(() => tryFocus(remaining - 1), delay);
+                    };
+                    tryFocus(attempts);
+                };
 
                 if (mode === 'create'){
                     modalTitle.innerText = 'Create user';
@@ -443,7 +482,8 @@
                     roleEl.value = 'DeviceUser';
                     passwordEl.value = '';
                     updateRoleDisplay();
-                    emailEl.focus();
+                    // Delay focus slightly to avoid focus being stolen by the originating click
+                    setTimeout(focusEmailSafely, 10);
                 } else {
                     modalTitle.innerText = 'Edit user';
                     // prefer to fetch freshest data from server when possible
@@ -455,7 +495,7 @@
                         roleEl.value = user.Role ?? user.role ?? 'DeviceUser';
                         passwordEl.value = '';
                         updateRoleDisplay();
-                        emailEl.focus();
+                        setTimeout(focusEmailSafely, 10);
                     } else {
                         // fetch single user resource for authoritative data
                         try {
@@ -487,8 +527,12 @@
                             passwordEl.value = '';
                             updateRoleDisplay();
                         } finally {
-                            modalSave.disabled = false; modalSave.removeAttribute('aria-busy');
-                            emailEl.focus();
+                            // Re-enable the save button and move focus to the email input. Use a short timeout
+                            // so focus is attempted after the modal has been painted and any event queue tasks finished.
+                            setTimeout(()=>{
+                                modalSave.disabled = false; modalSave.removeAttribute('aria-busy');
+                                focusEmailSafely();
+                            }, 10);
                         }
                     }
                 }

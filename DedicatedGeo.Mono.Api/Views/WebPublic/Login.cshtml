@@ -255,7 +255,7 @@
                             localStorage.setItem('AuthToken', token);
                             try{ setCookie('AuthToken', token, 7); } catch(e){ console.error('Failed to save token in cookie', e); }
                             // redirect to admin map
-                            window.location.href = '/admin/map';
+                            window.location.href = '/map';
                             return;
                         } else {
                             // unexpected body shape

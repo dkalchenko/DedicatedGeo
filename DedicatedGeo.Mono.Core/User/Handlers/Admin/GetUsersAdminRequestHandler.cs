@@ -32,6 +32,11 @@ public class GetUsersAdminRequestHandler: IRequestHandler<GetUsersAdminRequest, 
             {
                 query = query.Where(x => x.Email.Contains(request.Search));
             }
+
+            if (request.Role is not null)
+            {
+                query = query.Where(x => x.Role == request.Role);
+            }
             
             query = query.Skip(request.Offset).Take(request.Limit);
         }

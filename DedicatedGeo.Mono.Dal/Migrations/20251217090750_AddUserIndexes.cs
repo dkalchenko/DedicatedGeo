@@ -1,0 +1,38 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace DedicatedGeo.Mono.Dal.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddUserIndexes : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Email_Role",
+                table: "Users",
+                columns: new[] { "Email", "Role" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Role",
+                table: "Users",
+                column: "Role",
+                unique: true);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropIndex(
+                name: "IX_Users_Email_Role",
+                table: "Users");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Users_Role",
+                table: "Users");
+        }
+    }
+}
