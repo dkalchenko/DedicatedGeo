@@ -18,7 +18,7 @@ public class WebPublicController : Controller
     {
         if (User.Identity?.IsAuthenticated == true)
         {
-            return Redirect("/admin/map");
+            return Redirect("/map");
         }
 
         return View();
