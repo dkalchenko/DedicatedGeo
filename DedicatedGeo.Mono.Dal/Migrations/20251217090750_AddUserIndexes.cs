@@ -13,14 +13,12 @@ namespace DedicatedGeo.Mono.Dal.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Email_Role",
                 table: "Users",
-                columns: new[] { "Email", "Role" },
-                unique: true);
+                columns: new[] { "Email", "Role" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Role",
                 table: "Users",
-                column: "Role",
-                unique: true);
+                column: "Role");
         }
 
         /// <inheritdoc />

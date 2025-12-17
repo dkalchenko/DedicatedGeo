@@ -197,11 +197,9 @@ namespace DedicatedGeo.Mono.Dal.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.HasIndex("Role")
-                        .IsUnique();
+                    b.HasIndex("Role");
 
-                    b.HasIndex("Email", "Role")
-                        .IsUnique();
+                    b.HasIndex("Email", "Role");
 
                     b.ToTable("Users");
                 });
