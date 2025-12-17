@@ -143,6 +143,17 @@
         .cds-list:hover::-webkit-scrollbar-thumb, .modal-card:hover::-webkit-scrollbar-thumb, .cds-list .cds-items:hover::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); }
         .cds-list:focus-visible::-webkit-scrollbar-thumb, .modal-card:focus-visible::-webkit-scrollbar-thumb, .cds-list .cds-items:focus-visible::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); outline: 2px solid rgba(90,179,255,0.08); }
 
+        /* Admin button style (matches Map view picker's visual language) */
+        #adminButtons{ display:flex; gap:8px; align-items:center; }
+        #adminButtons .admin-btn{
+            display:inline-flex; align-items:center; justify-content:center; gap:8px;
+            background: rgba(11,18,28,0.85);
+            color: #e6eef8; text-decoration:none; border:1px solid rgba(255,255,255,0.04);
+            padding:8px 12px; min-height:36px; border-radius:8px; font-weight:600; font-size:13px;
+            box-sizing:border-box; cursor:pointer;
+        }
+        #adminButtons .admin-btn:hover{ filter:brightness(1.06); }
+
         @@media (max-width:720px){ .card{ width:94vw; margin-top:18px; } table.devices thead{ display:none; } table.devices tbody td{ display:block; width:100%; } }
     </style>
 </head>
@@ -154,6 +165,35 @@
                     <h1 id="devicesTitle">Device Management</h1>
                     <div class="card-sub">Create, edit, assign users and delete devices.</div>
                 </div>
+
+                @{ 
+                    // Read role(s) from the ticket/claims using the explicit claim type provided by the user.
+                    var claimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
+                    var isSuper = false;
+                    var isAdmin = false;
+                    if (User != null)
+                    {
+                        foreach (var c in User.Claims)
+                        {
+                            if (c == null) continue;
+                            if (!string.Equals(c.Type, claimType, System.StringComparison.OrdinalIgnoreCase)) continue;
+                            var v = (c.Value ?? string.Empty).Trim();
+                            if (string.Equals(v, "SuperAdmin", System.StringComparison.OrdinalIgnoreCase)) { isSuper = true; isAdmin = true; break; }
+                            if (string.Equals(v, "Admin", System.StringComparison.OrdinalIgnoreCase)) { isAdmin = true; }
+                        }
+                    }
+                }
+
+                <div id="adminButtons" style="margin-right:12px;">
+                    <a href="/map" class="admin-btn">Map</a>
+                    @if (isAdmin) {
+                        <a href="/admin/devices" class="admin-btn">Devices</a>
+                    }
+                    @if (isSuper) {
+                        <a href="/admin/users" class="admin-btn">Users</a>
+                    }
+                </div>
+
                 <div class="controls">
                     <input id="searchInput" class="search" placeholder="Filter by name or IMEI" />
                     <button id="createBtn" class="btn-primary">Create device</button>
@@ -314,11 +354,11 @@
             try { lastFocusedEl = document.activeElement; } catch (e) {}
             modalBackdrop.classList.add('open'); modalBackdrop.setAttribute('aria-hidden','false'); document.body.style.overflow = 'hidden';
             if (mode === 'create'){
-                modalTitle.innerText = 'Create device'; deviceIdEl.value = ''; deviceNameEl.value = ''; imeiEl.value = ''; deviceNameEl.focus();
+                modalTitle.innerText = 'Create device'; deviceIdEl.value = ''; deviceNameEl.value = ''; imeiEl.value = ''; 
             } else {
                 modalTitle.innerText = 'Edit device';
                 const id = device.DeviceId ?? device.deviceId ?? device.id ?? device.Id ?? null;
-                if (!id){ deviceIdEl.value = device.DeviceId ?? device.deviceId ?? device.id ?? ''; deviceNameEl.value = device.DeviceName ?? device.deviceName ?? device.name ?? ''; imeiEl.value = device.IMEI ?? device.Imei ?? device.imei ?? ''; deviceNameEl.focus(); }
+                if (!id){ deviceIdEl.value = device.DeviceId ?? device.deviceId ?? device.id ?? ''; deviceNameEl.value = device.DeviceName ?? device.deviceName ?? device.name ?? ''; imeiEl.value = device.IMEI ?? device.Imei ?? device.imei ?? '';  }
                 else {
                     // fetch the single device for freshest data
                     (async ()=>{
@@ -328,13 +368,13 @@
                             if (resp.ok){ const data = await resp.json(); const d = Array.isArray(data) ? data[0] : data; deviceIdEl.value = d.DeviceId ?? d.deviceId ?? d.id ?? id; deviceNameEl.value = d.DeviceName ?? d.deviceName ?? d.name ?? ''; imeiEl.value = d.IMEI ?? d.Imei ?? d.imei ?? ''; }
                             else { showToast('Failed to load device details; using provided values', { type: 'error' }); deviceIdEl.value = id; deviceNameEl.value = device.DeviceName ?? device.deviceName ?? device.name ?? ''; imeiEl.value = device.IMEI ?? device.Imei ?? device.imei ?? ''; }
                         } catch (e){ console.warn('openModal fetch device', e); deviceIdEl.value = id; deviceNameEl.value = device.DeviceName ?? device.deviceName ?? device.name ?? ''; imeiEl.value = device.IMEI ?? device.Imei ?? device.imei ?? ''; }
-                        finally{ modalSave.disabled = false; modalSave.removeAttribute('aria-busy'); deviceNameEl.focus(); }
+                        finally{ modalSave.disabled = false; modalSave.removeAttribute('aria-busy');  }
                     })();
                 }
             }
         }
 
-        function closeModal(){ modalBackdrop.classList.remove('open'); modalBackdrop.setAttribute('aria-hidden','true'); document.body.style.overflow = ''; try { if (lastFocusedEl && typeof lastFocusedEl.focus === 'function') lastFocusedEl.focus(); } catch (e) {} }
+        function closeModal(){ modalBackdrop.classList.remove('open'); modalBackdrop.setAttribute('aria-hidden','true'); document.body.style.overflow = '';  }
 
         modalCancel.addEventListener('click', (e)=>{ e.preventDefault(); closeModal(); });
         modalBackdrop.addEventListener('click', (e)=>{ if (e.target === modalBackdrop) closeModal(); });
@@ -348,7 +388,7 @@
             try{ if (e && typeof e.preventDefault === 'function') e.preventDefault(); } catch(e){}
             const id = (deviceIdEl && deviceIdEl.value) ? deviceIdEl.value.trim() : '';
             const payload = { DeviceId: id || undefined, DeviceName: deviceNameEl.value.trim(), IMEI: imeiEl.value.trim() };
-            if (!payload.DeviceName){ showToast('Device name is required', { type:'error' }); try{ deviceNameEl.focus(); }catch(e){}; return; }
+            if (!payload.DeviceName){ showToast('Device name is required', { type:'error' });  return; }
             try{
                 modalSave.disabled = true; modalSave.setAttribute('aria-busy','true');
                 if (!id){
@@ -368,6 +408,40 @@
         // wire the named handler to both the button click and the form submit (Enter key)
         try { if (modalSave) modalSave.addEventListener('click', saveDevice); } catch(e){}
         try { const deviceForm = document.getElementById('deviceForm'); if (deviceForm) deviceForm.addEventListener('submit', saveDevice); } catch(e){}
+
+        // Add missing deleteDevice implementation and wire the main search input.
+        // This fixes: the Delete button had no handler function defined, and the search input was not wired to fetchDevices.
+        // Note: per requirement we do NOT use .focus() anywhere.
+
+        async function deleteDevice(device, btn){
+            if (!device) return;
+            const id = device.DeviceId ?? device.deviceId ?? device.id ?? device.Id ?? '';
+            const name = device.DeviceName ?? device.deviceName ?? device.name ?? '';
+            if (!id){ showToast('Unable to determine device id', { type: 'error' }); return; }
+            // Use a simple confirmation dialog; avoid programmatic focus changes.
+            if (!confirm('Delete device "' + (name || id) + '"?')) return;
+            try{
+                if (btn) btn.disabled = true;
+                showLoading();
+                const resp = await fetch(`/v1/admin/devices/${encodeURIComponent(id)}`, { method: 'DELETE' });
+                if (resp.ok){ showToast('Device deleted'); // reset to first page to avoid empty page edge-case
+                    offset = 0; await fetchDevices();
+                } else {
+                    const txt = await resp.text().catch(()=>null);
+                    showToast('Delete failed: ' + (txt || resp.status), { type: 'error' });
+                }
+            } catch (e){ console.error('deleteDevice error', e); showToast('Delete failed', { type: 'error' }); }
+            finally{ if (btn) btn.disabled = false; hideLoading(); }
+        }
+
+        // Wire search input to call fetchDevices debounced and on Enter. Do not use .focus().
+        try{
+            if (searchInput){
+                const debounced = debounce(()=>{ offset = 0; fetchDevices(); }, 300);
+                searchInput.addEventListener('input', debounced);
+                searchInput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { e.preventDefault(); offset = 0; fetchDevices(); } });
+            }
+        } catch(e){ console.warn('search wiring failed', e); }
 
         let offset = 0; let limit = Number(pageSizeEl.value) || 10; let currentPage = 1; let totalCount = null;
 
@@ -426,14 +500,17 @@
         }
 
         function openPageOptions(){
+            // don't open page size options while a modal is visible
+            if (document.querySelector('.modal-backdrop.open')) return;
             pageSizeOptions.classList.add('open');
             if (pageSizeWrap) pageSizeWrap.setAttribute('aria-expanded','true');
-            try { pageSizeOptions.focus(); } catch (e) {}
+            try {
+                // don't steal focus if a modal is currently open
+            } catch (e) {}
         }
         function closePageOptions(){
             pageSizeOptions.classList.remove('open');
             if (pageSizeWrap) pageSizeWrap.setAttribute('aria-expanded','false');
-            try { pageSizeWrap.focus(); } catch (e) {}
         }
 
         // initialize visual display to match the hidden select
@@ -443,7 +520,8 @@
             pageSizeWrap.addEventListener('click', (e)=>{ e.stopPropagation(); if (pageSizeOptions.classList.contains('open')) closePageOptions(); else openPageOptions(); });
             pageSizeWrap.addEventListener('keydown', (e)=>{
                 if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (pageSizeOptions.classList.contains('open')) closePageOptions(); else openPageOptions(); }
-                if (e.key === 'ArrowDown'){ e.preventDefault(); openPageOptions(); const first = pageOptionButtons[0]; if (first) first.focus(); }
+                if (e.key === 'ArrowDown'){ e.preventDefault(); // only focus the first option when no modal is open
+                    if (document.querySelector('.modal-backdrop.open')) return; openPageOptions(); const first = pageOptionButtons[0];  }
             });
         }
 
@@ -454,12 +532,6 @@
                 closePageOptions();
                 // reflect change
                 offset = 0; fetchDevices();
-            });
-            btn.addEventListener('keydown', (e)=>{
-                const idx = pageOptionButtons.indexOf(btn);
-                if (e.key === 'ArrowDown'){ e.preventDefault(); const next = pageOptionButtons[idx+1]; if (next) next.focus(); }
-                if (e.key === 'ArrowUp'){ e.preventDefault(); const prev = pageOptionButtons[idx-1]; if (prev) prev.focus(); }
-                if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); btn.click(); }
             });
         });
 
@@ -537,7 +609,7 @@
             assignAssignedAdminsRoot.innerHTML = '';
             if (!currentAssignAdmins || currentAssignAdmins.length === 0){ const s = document.createElement('div'); s.style.color='#9aa4b2'; s.innerText = 'No device users'; assignAssignedAdminsRoot.appendChild(s); return; }
             currentAssignAdmins.forEach(a => {
-                const wrap = document.createElement('div'); wrap.className = 'admin-badge'; wrap.style.display='inline-flex'; const txt = document.createElement('span'); txt.innerText = a.Email ?? String(a.UserId ?? a.userId ?? a.id ?? ''); const btn = document.createElement('button'); btn.type='button'; btn.className='admin-remove'; btn.innerText='✕'; btn.addEventListener('click', async () =>{
+                const wrap = document.createElement('div'); wrap.className = 'admin-badge'; wrap.style.display='inline-flex'; const txt = document.createElement('span'); txt.innerText = a.Email ?? String(a.UserId ?? auserId ?? a.id ?? ''); const btn = document.createElement('button'); btn.type='button'; btn.className='admin-remove'; btn.innerText='✕'; btn.addEventListener('click', async () =>{
                     // attempt to delete the assignment by DeviceAssignmentId if present, otherwise ask server to remove by user id
                     if (!currentAssignDeviceId) return;
                     if (!confirm('Unassign admin ' + (a.Email ?? a.UserId) + '?')) return;
@@ -707,7 +779,7 @@
             if (assignFocusedIndex >= 0 && assignItemNodes[assignFocusedIndex]) assignItemNodes[assignFocusedIndex].el.classList.remove('focused');
             assignFocusedIndex = Math.max(0, Math.min(idx, assignItemNodes.length - 1));
             const node = assignItemNodes[assignFocusedIndex];
-            if (node){ node.el.classList.add('focused'); node.el.scrollIntoView({ block: 'nearest' }); node.el.focus(); }
+            if (node){ node.el.classList.add('focused'); node.el.scrollIntoView({ block: 'nearest' }); }
         }
 
         if (assignSelectorRoot){
@@ -730,7 +802,6 @@
                 // populate existing value or show prompt
                 try { doAssignSelectorSearchPopulate(assignSelectorSearch && assignSelectorSearch.value ? assignSelectorSearch.value.trim() : ''); } catch (e) {}
                 // focus search input so typing works immediately
-                try { if (assignSelectorSearch) assignSelectorSearch.focus(); } catch (e) {}
             } catch(e){ console.warn('openAssignSelector', e); }
         }
 
@@ -759,7 +830,7 @@
             assignSelectorToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleAssignSelector(); });
             assignSelectorToggle.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleAssignSelector(); }
-                if (e.key === 'ArrowDown') { e.preventDefault(); openAssignSelector(); try{ if (assignSelectorSearch) assignSelectorSearch.focus(); } catch(e){} }
+                if (e.key === 'ArrowDown') { e.preventDefault(); openAssignSelector();  }
             });
         }
 
@@ -787,7 +858,6 @@
             } catch(e){}
             // also close the selector and restore focus to the element that opened the modal
             try { closeAssignSelector(); } catch(e){}
-            try { if (lastFocusedEl && typeof lastFocusedEl.focus === 'function') lastFocusedEl.focus(); } catch(e){}
         }
         if (assignModalCancel) assignModalCancel.addEventListener('click', (e)=>{ e.preventDefault(); closeAssignModal(); });
         if (assignModalBackdrop) assignModalBackdrop.addEventListener('click', (e)=>{ if (e.target === assignModalBackdrop) closeAssignModal(); });
@@ -811,7 +881,6 @@
             try{ assignDeviceNameEl.innerText = device.DeviceName ?? device.deviceName ?? device.Name ?? device.name ?? ''; } catch(e){}
             try{ if (typeof loadAssignmentsForModal === 'function') loadAssignmentsForModal(id); else console.warn('loadAssignmentsForModal not available'); } catch (e){ console.warn('Error loading assignments for modal', e); }
             // focus selector when opened
-            try{ if (assignSelectorToggle) assignSelectorToggle.focus(); } catch(e){}
         }
 
         // expose for debugging/console use in case callers expect a global

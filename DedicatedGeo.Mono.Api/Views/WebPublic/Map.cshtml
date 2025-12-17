@@ -310,6 +310,24 @@
 
     /* logout button fixed on map (left-bottom) */
     .map-logout{ position: absolute; left: 12px; bottom: 12px; z-index: 1105; }
+
+    /* Admin buttons near the datetime picker - visually match the picker and control buttons */
+    #adminButtons{ position:absolute; top:64px; left:50%; transform:translateX(-50%); z-index:1103; display:flex; gap:8px; align-items:center; }
+    #adminButtons .admin-btn{
+        display:inline-flex; align-items:center; justify-content:center; gap:8px;
+        background: rgba(11,18,28,0.85);
+        color: #e6eef8; text-decoration:none; border:1px solid rgba(255,255,255,0.04);
+        padding:8px 12px; min-height:36px; border-radius:8px; font-weight:600; font-size:13px;
+        box-sizing:border-box; cursor:pointer;
+    }
+    #adminButtons .admin-btn:hover{ filter:brightness(1.06); }
+
+    /* make admin buttons responsive on small screens */
+    @@media (max-width:560px){
+        #adminButtons{ left:50%; top:76px; gap:6px; transform:translateX(-50%); flex-wrap:wrap; }
+        #adminButtons .admin-btn{ padding:6px 10px; font-size:12px; }
+    }
+
 </style>
 
 <div id="map"></div>
@@ -324,6 +342,36 @@
     <input id="fromPicker" class="datetime-input" type="datetime-local" step="1" />
     <label for="toPicker" style="font-size:12px;color:#9aa4b2;margin-right:6px;">To</label>
     <input id="toPicker" class="datetime-input" type="datetime-local" step="1" />
+</div>
+
+@{
+    // Read role(s) from the ticket/claims using the explicit claim type provided by the user.
+    // Use an explicit loop to avoid depending on LINQ/usings in the view environment.
+    var claimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
+    var isSuper = false;
+    var isAdmin = false;
+    if (User != null)
+    {
+        foreach (var c in User.Claims)
+        {
+            if (c == null) continue;
+            if (!string.Equals(c.Type, claimType, System.StringComparison.OrdinalIgnoreCase)) continue;
+            var v = (c.Value ?? string.Empty).Trim();
+            if (string.Equals(v, "SuperAdmin", System.StringComparison.OrdinalIgnoreCase)) { isSuper = true; isAdmin = true; break; }
+            if (string.Equals(v, "Admin", System.StringComparison.OrdinalIgnoreCase)) { isAdmin = true; }
+        }
+    }
+}
+
+<!-- Admin buttons shown under the datetime picker for Map view -->
+<div id="adminButtons">
+    <a href="/map" class="admin-btn">Map</a>
+    @if (isAdmin) {
+        <a href="/admin/devices" class="admin-btn">Devices</a>
+    }
+    @if (isSuper) {
+        <a href="/admin/users" class="admin-btn">Users</a>
+    }
 </div>
 
 <button id="openSidebar">Details</button>
@@ -850,7 +898,7 @@
 
             // Helper to obtain a stable id for a point
             const getPointId = (p, fallbackIdx) => {
-                return (p.PointId ?? p.PointID ?? p.pointId ?? p.id ?? p.Id ?? p.Id ?? p.uid ?? null)
+                return (p.PointId ?? p.PointID ?? p.pointId ?? p.id ?? p.Id ?? p.uid ?? null)
                     || (p.Id ?? p.id ?? null)
                     || (p.ExternalId ?? p.externalId ?? null)
                     || (p.CreatedAt ?? p.createdAt ?? p.timestamp ?? p.time ?? null) && `${p.Latitude ?? p.latitude ?? p.lat}_${p.Longitude ?? p.longitude ?? p.lon}_${p.CreatedAt ?? p.createdAt ?? p.timestamp ?? fallbackIdx}`

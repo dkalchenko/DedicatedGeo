@@ -18,7 +18,7 @@ public class PutUserAdminRequestHandler: IRequestHandler<PutUserAdminRequest, Us
 
     public async Task<UserAdminResponse> Handle(PutUserAdminRequest request, CancellationToken cancellationToken)
     {
-        var user = await _databaseRepository.Users.FirstOrDefaultAsync(x => x.Email == request.Email, cancellationToken: cancellationToken);
+        var user = await _databaseRepository.Users.FirstOrDefaultAsync(x => x.UserId == request.UserId.ToGuid(), cancellationToken: cancellationToken);
 
         if (user is null)
         {

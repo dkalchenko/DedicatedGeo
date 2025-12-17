@@ -131,6 +131,17 @@
         .page-option:hover{ background: rgba(255,255,255,0.02); }
         .page-option:focus{ outline:2px solid rgba(90,179,255,0.12); }
 
+        /* Admin button style (matches Map view picker visuals) */
+        #adminButtons{ display:flex; gap:8px; align-items:center; }
+        #adminButtons .admin-btn{
+            display:inline-flex; align-items:center; justify-content:center; gap:8px;
+            background: rgba(11,18,28,0.85);
+            color: #e6eef8; text-decoration:none; border:1px solid rgba(255,255,255,0.04);
+            padding:8px 12px; min-height:36px; border-radius:8px; font-weight:600; font-size:13px;
+            box-sizing:border-box; cursor:pointer;
+        }
+        #adminButtons .admin-btn:hover{ filter:brightness(1.06); }
+
         @@media (max-width:720px){ .card{ width:94vw; margin-top:18px; } table.users thead{ display:none; } table.users tbody td{ display:block; width:100%; } }
  
     </style>
@@ -143,6 +154,35 @@
                     <h1 id="usersTitle">User Management</h1>
                     <div class="card-sub">Create, edit and delete users.</div>
                 </div>
+
+                @{ 
+                    // Read role(s) from the ticket/claims using the explicit claim type provided by the user
+                    var claimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
+                    var isSuper = false;
+                    var isAdmin = false;
+                    if (User != null)
+                    {
+                        foreach (var c in User.Claims)
+                        {
+                            if (c == null) continue;
+                            if (!string.Equals(c.Type, claimType, System.StringComparison.OrdinalIgnoreCase)) continue;
+                            var v = (c.Value ?? string.Empty).Trim();
+                            if (string.Equals(v, "SuperAdmin", System.StringComparison.OrdinalIgnoreCase)) { isSuper = true; isAdmin = true; break; }
+                            if (string.Equals(v, "Admin", System.StringComparison.OrdinalIgnoreCase)) { isAdmin = true; }
+                        }
+                    }
+                }
+
+                <div id="adminButtons" style="margin-right:12px;">
+                    <a href="/map" class="admin-btn">Map</a>
+                    @if (isAdmin) {
+                        <a href="/admin/devices" class="admin-btn">Devices</a>
+                    }
+                    @if (isSuper) {
+                        <a href="/admin/users" class="admin-btn">Users</a>
+                    }
+                </div>
+
                 <div class="controls">
                     <input id="searchInput" class="search" placeholder="Filter by email" />
                     <button id="createBtn" class="btn-primary">Create user</button>
@@ -326,7 +366,8 @@
             function openRoleOptions(){
                 roleOptions.classList.add('open');
                 if (roleSelectWrap) roleSelectWrap.setAttribute('aria-expanded','true');
-                try { roleOptions.focus(); } catch (e) {}
+                // focus removed intentionally to avoid programmatic focus
+                // try { roleOptions.focus(); } catch (e) {}
                 // remember that the user opened the options so closing should restore focus
                 roleOptionsShouldRestoreFocus = true;
             }
@@ -336,7 +377,8 @@
                 if (roleSelectWrap) roleSelectWrap.setAttribute('aria-expanded','false');
                 // only restore focus to the role UI when the options were opened by the user
                 if (roleOptionsShouldRestoreFocus && roleSelectWrap) {
-                    try { roleSelectWrap.focus(); } catch (e) {}
+                    // previous code attempted to focus the wrapper here; removed to avoid programmatic focus
+                    // try { roleSelectWrap.focus(); } catch (e) {}
                 }
                 roleOptionsShouldRestoreFocus = false;
             }
@@ -345,7 +387,8 @@
             function openPageOptions(){
                 pageSizeOptions.classList.add('open');
                 if (pageSizeWrap) pageSizeWrap.setAttribute('aria-expanded','true');
-                try { pageSizeOptions.focus(); } catch (e) {}
+                // focus removed intentionally
+                // try { pageSizeOptions.focus(); } catch (e) {}
                 // remember the user opened the page options so closing should restore focus
                 pageOptionsShouldRestoreFocus = true;
             }
@@ -354,7 +397,8 @@
                 if (pageSizeWrap) pageSizeWrap.setAttribute('aria-expanded','false');
                 // only restore focus to the page-size UI when the options were opened by the user
                 if (pageOptionsShouldRestoreFocus && pageSizeWrap) {
-                    try { pageSizeWrap.focus(); } catch (e) {}
+                    // previous code attempted to focus the wrapper here; removed
+                    // try { pageSizeWrap.focus(); } catch (e) {}
                 }
                 pageOptionsShouldRestoreFocus = false;
             }
@@ -367,7 +411,7 @@
                 // keyboard support
                 roleSelectWrap.addEventListener('keydown', (e)=>{
                     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (roleOptions.classList.contains('open')) closeRoleOptions(); else openRoleOptions(); }
-                    if (e.key === 'ArrowDown'){ e.preventDefault(); openRoleOptions(); const first = roleOptionButtons[0]; if (first) first.focus(); }
+                    if (e.key === 'ArrowDown'){ e.preventDefault(); openRoleOptions(); const first = roleOptionButtons[0]; /* focus removed: if (first) first.focus(); */ }
                 });
             }
 
@@ -381,8 +425,8 @@
                 // keyboard selection inside options
                 btn.addEventListener('keydown', (e)=>{
                     const idx = roleOptionButtons.indexOf(btn);
-                    if (e.key === 'ArrowDown'){ e.preventDefault(); const next = roleOptionButtons[idx+1]; if (next) next.focus(); }
-                    if (e.key === 'ArrowUp'){ e.preventDefault(); const prev = roleOptionButtons[idx-1]; if (prev) prev.focus(); }
+                    if (e.key === 'ArrowDown'){ e.preventDefault(); const next = roleOptionButtons[idx+1]; /* focus removed: if (next) next.focus(); */ }
+                    if (e.key === 'ArrowUp'){ e.preventDefault(); const prev = roleOptionButtons[idx-1]; /* focus removed: if (prev) prev.focus(); */ }
                     if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); btn.click(); }
                 });
             });
@@ -406,8 +450,8 @@
                 });
                 btn.addEventListener('keydown', (e)=>{
                     const idx = pageOptionButtons.indexOf(btn);
-                    if (e.key === 'ArrowDown'){ e.preventDefault(); const next = pageOptionButtons[idx+1]; if (next) next.focus(); }
-                    if (e.key === 'ArrowUp'){ e.preventDefault(); const prev = pageOptionButtons[idx-1]; if (prev) prev.focus(); }
+                    if (e.key === 'ArrowDown'){ e.preventDefault(); const next = pageOptionButtons[idx+1]; /* focus removed: if (next) next.focus(); */ }
+                    if (e.key === 'ArrowUp'){ e.preventDefault(); const prev = pageOptionButtons[idx-1]; /* focus removed: if (prev) prev.focus(); */ }
                     if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); btn.click(); }
                 });
             });
@@ -465,7 +509,7 @@
                         try {
                             if (emailEl && typeof emailEl.focus === 'function') {
                                 // prefer preventScroll to avoid unexpected page jumps
-                                try { emailEl.focus({ preventScroll: true }); } catch (e) { emailEl.focus(); }
+                                try { /* emailEl.focus({ preventScroll: true }); */ } catch (e) { /* emailEl.focus(); */ }
                                 // also select the input contents when possible so the caret is visible
                                 try { if (typeof emailEl.select === 'function') emailEl.select(); } catch (e) {}
                             }
@@ -544,7 +588,7 @@
                 // restore scrolling
                 document.body.style.overflow = '';
                 // restore focus to the element that opened the modal
-                try { if (lastFocusedEl && typeof lastFocusedEl.focus === 'function') lastFocusedEl.focus(); } catch (e) {}
+                try { /* focus restore removed: if (lastFocusedEl && typeof lastFocusedEl.focus === 'function') lastFocusedEl.focus(); */ } catch (e) {}
             }
 
             modalCancel.addEventListener('click', (e)=>{ e.preventDefault(); closeModal(); });
@@ -653,8 +697,8 @@
                     Password: passwordEl.value || undefined
                 };
                 try{
-                    if (!payload.Email){ showToast('Email is required', { type:'error' }); emailEl.focus(); return; }
-                    if (!payload.Role){ showToast('Role is required', { type:'error' }); roleEl.focus(); return; }
+                    if (!payload.Email){ showToast('Email is required', { type:'error' }); /* focus removed: emailEl.focus(); */ return; }
+                    if (!payload.Role){ showToast('Role is required', { type:'error' }); /* focus removed: roleEl.focus(); */ return; }
 
                     modalSave.disabled = true; modalSave.setAttribute('aria-busy','true');
 

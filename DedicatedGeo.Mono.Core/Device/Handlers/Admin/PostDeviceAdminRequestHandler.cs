@@ -31,17 +31,7 @@ public class PostDeviceAdminRequestHandler: IRequestHandler<PostDeviceAdminReque
         {
             DeviceId = deviceId,
             IMEI = request.IMEI,
-            Name = request.DeviceName,
-            DeviceAssignments =
-            [
-                new Models.Device.DeviceAssignment
-                {
-                    DeviceId = deviceId,
-                    UserId = request.UserId.ToGuid(),
-                    CreatedAt = DateTime.UtcNow,
-                    DeviceAssignmentId = Guid.NewGuid()
-                }
-            ]
+            Name = request.DeviceName
         };
 
         _repository.Devices.Add(newDevice);
