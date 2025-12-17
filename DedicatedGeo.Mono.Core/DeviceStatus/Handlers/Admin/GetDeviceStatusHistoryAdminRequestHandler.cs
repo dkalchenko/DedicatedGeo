@@ -55,11 +55,6 @@ public class GetDeviceStatusHistoryAdminRequestHandler: IRequestHandler<GetDevic
             } 
         }
         
-        if (!await _deviceAssignmentService.IsDeviceAssignedToUserAsync(deviceId, request.UserId.ToGuid(), cancellationToken))
-        {
-            throw OwnConstants.ErrorTemplates.ResourceIsForbidden.GetException();
-        }
-        
         var result = await _repository.DeviceStatusHistories
             .Where(x => x.DeviceId == deviceId && x.StatusName == request.StatusName)
             .OrderByDescending(x => x.ChangedAt)
