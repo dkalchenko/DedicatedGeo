@@ -600,31 +600,68 @@
             const results = await fetchAdmins(q);
             if (token !== assignSearchToken) return;
             if (!results || results.length === 0){ const e = document.createElement('div'); e.className = 'cds-empty'; e.innerText = 'No admins'; assignSelectorItems.appendChild(e); return; }
-            results.forEach(r => {
-                const id = r.UserId ?? r.userId ?? r.id ?? r.Id ?? null; const email = r.Email ?? r.email ?? r.EmailAddress ?? String(id ?? '');
-                const it = document.createElement('div'); it.className = 'cds-item'; it.tabIndex = -1; it.dataset.value = id ?? '';
-                it.innerHTML = `<div class="name">${escapeHtml(email)}</div><div class="id">${escapeHtml(String(id ?? ''))}</div>`;
-                it.addEventListener('click', async ()=>{
-                    if (!currentAssignDeviceId) return; const exists = currentAssignAdmins.some(x => (x.UserId === id)); if (exists){ showToast('Admin already assigned'); closeAssignSelector(); return; }
-                    try{
-                        const payload = { UserId: id, DeviceId: currentAssignDeviceId };
-                        const resp = await fetch(`/v1/admin/devices/${encodeURIComponent(currentAssignDeviceId)}/assignments`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-                        if (resp.ok){
-                            // update visible label to reflect assigned admin (matches Map selector behavior)
-                            try{
-                                const lbl = assignSelectorToggle && assignSelectorToggle.querySelector('.label');
-                                if (lbl) lbl.innerText = 'Assigned: ' + String(email);
-                            } catch(e){}
-                            showToast('Admin assigned');
-                            await loadAssignmentsForModal(currentAssignDeviceId);
-                            fetchDevices();
-                            closeAssignSelector();
-                        } else { const txt = await resp.text().catch(()=>null); showToast('Assign failed: '+(txt||resp.status), { type:'error' }); }
-                    } catch (e){ console.error(e); showToast('Assign failed', { type:'error' }); }
+
+            // Exclude users that are already assigned to the currently opened device (client-side filter)
+            try{
+                const assignedIds = new Set((currentAssignAdmins || []).map(a => String(a.UserId ?? a.userId ?? a.id ?? '')));
+                // filter out any result whose id is present in assignedIds
+                const filtered = results.filter(r => {
+                    const rid = String(r.UserId ?? r.userId ?? r.id ?? r.Id ?? '');
+                    return rid && !assignedIds.has(rid);
                 });
-                assignSelectorItems.appendChild(it);
-                assignItemNodes.push({ el: it, id: String(id ?? ''), label: String(email).toLowerCase() });
-            });
+
+                if (!filtered || filtered.length === 0){ const e = document.createElement('div'); e.className = 'cds-empty'; e.innerText = 'No admins'; assignSelectorItems.appendChild(e); return; }
+
+                filtered.forEach(r => {
+                    const id = r.UserId ?? r.userId ?? r.id ?? r.Id ?? null; const email = r.Email ?? r.email ?? r.EmailAddress ?? String(id ?? '');
+                    const it = document.createElement('div'); it.className = 'cds-item'; it.tabIndex = -1; it.dataset.value = id ?? '';
+                    it.innerHTML = `<div class="name">${escapeHtml(email)}</div><div class="id">${escapeHtml(String(id ?? ''))}</div>`;
+                    it.addEventListener('click', async ()=>{
+                        if (!currentAssignDeviceId) return; const exists = currentAssignAdmins.some(x => (String(x.UserId) === String(id))); if (exists){ showToast('Admin already assigned'); closeAssignSelector(); return; }
+                        try{
+                            const payload = { UserId: id, DeviceId: currentAssignDeviceId };
+                            const resp = await fetch(`/v1/admin/devices/${encodeURIComponent(currentAssignDeviceId)}/assignments`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+                            if (resp.ok){
+                                // update visible label to reflect assigned admin (matches Map selector behavior)
+                                try{
+                                    const lbl = assignSelectorToggle && assignSelectorToggle.querySelector('.label');
+                                    if (lbl) lbl.innerText = 'Assigned: ' + String(email);
+                                } catch(e){}
+                                showToast('Admin assigned');
+                                await loadAssignmentsForModal(currentAssignDeviceId);
+                                fetchDevices();
+                                closeAssignSelector();
+                            } else { const txt = await resp.text().catch(()=>null); showToast('Assign failed: '+(txt||resp.status), { type:'error' }); }
+                        } catch (e){ console.error(e); showToast('Assign failed', { type:'error' }); }
+                    });
+                    assignSelectorItems.appendChild(it);
+                    assignItemNodes.push({ el: it, id: String(id ?? ''), label: String(email).toLowerCase() });
+                });
+            } catch(e){
+                console.warn('doAssignSelectorSearchPopulate filter error', e);
+                // fallback to showing original results unfiltered if something unexpected happens
+                results.forEach(r => {
+                    const id = r.UserId ?? r.userId ?? r.id ?? r.Id ?? null; const email = r.Email ?? r.email ?? r.EmailAddress ?? String(id ?? '');
+                    const it = document.createElement('div'); it.className = 'cds-item'; it.tabIndex = -1; it.dataset.value = id ?? '';
+                    it.innerHTML = `<div class="name">${escapeHtml(email)}</div><div class="id">${escapeHtml(String(id ?? ''))}</div>`;
+                    it.addEventListener('click', async ()=>{
+                        if (!currentAssignDeviceId) return; const exists = currentAssignAdmins.some(x => (x.UserId === id)); if (exists){ showToast('Admin already assigned'); closeAssignSelector(); return; }
+                        try{
+                            const payload = { UserId: id, DeviceId: currentAssignDeviceId };
+                            const resp = await fetch(`/v1/admin/devices/${encodeURIComponent(currentAssignDeviceId)}/assignments`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+                            if (resp.ok){
+                                try{ const lbl = assignSelectorToggle && assignSelectorToggle.querySelector('.label'); if (lbl) lbl.innerText = 'Assigned: ' + String(email); } catch(e){}
+                                showToast('Admin assigned');
+                                await loadAssignmentsForModal(currentAssignDeviceId);
+                                fetchDevices();
+                                closeAssignSelector();
+                            } else { const txt = await resp.text().catch(()=>null); showToast('Assign failed: '+(txt||resp.status), { type:'error' }); }
+                        } catch (e){ console.error(e); showToast('Assign failed', { type:'error' }); }
+                    });
+                    assignSelectorItems.appendChild(it);
+                    assignItemNodes.push({ el: it, id: String(id ?? ''), label: String(email).toLowerCase() });
+                });
+            }
         }
 
         // keyboard navigation helpers for assign selector
