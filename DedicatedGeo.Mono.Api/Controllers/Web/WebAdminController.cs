@@ -8,12 +8,6 @@ namespace DedicatedGeo.Mono.Api.Controllers.Web;
 [Route("admin")]
 public class WebAdminController: Controller
 {
-    [HttpGet("map")]
-    [Authorize(Roles = $"{OwnConstants.Roles.SuperAdmin},{OwnConstants.Roles.Admin},{OwnConstants.Roles.DeviceUser}")]
-    public IActionResult Map()
-    {
-        return View();
-    }   
     
     [HttpGet("users")]
     [Authorize(Roles = $"{OwnConstants.Roles.SuperAdmin}")]

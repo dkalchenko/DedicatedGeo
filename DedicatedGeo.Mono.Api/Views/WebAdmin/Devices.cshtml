@@ -54,6 +54,16 @@
         .page-input:focus{ outline:2px solid rgba(90,179,255,0.12); box-shadow: 0 6px 18px rgba(90,179,255,0.04); }
         .page-input option{ background: linear-gradient(180deg, rgba(11,18,28,0.98), rgba(6,10,16,0.95)); color:#eeefef; padding:6px 8px; }
 
+        /* Custom page-size selector visuals (copied from Users.cshtml) */
+        .page-select-wrap{ position:relative; display:flex; align-items:center; gap:8px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.03)); border:1px solid rgba(255,255,255,0.04); padding:6px 8px; border-radius:8px; cursor:pointer; min-width:90px; box-sizing:border-box; }
+        .page-select-value{ color:#e6eef8; font-weight:600; }
+        .page-select-value::after{ content: ''; display:inline-block; width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-top:7px solid rgba(255,255,255,0.7); margin-left:8px; transform:translateY(1px); }
+        .page-options{ position:absolute; top:calc(100% + 8px); left:0; min-width:100%; background:linear-gradient(180deg, rgba(11,18,28,0.98), rgba(6,10,16,0.95)); border:1px solid rgba(255,255,255,0.04); padding:6px; border-radius:8px; display:none; z-index:1500; box-shadow:0 18px 60px rgba(2,6,23,0.6); box-sizing:border-box; }
+        .page-options.open{ display:block; }
+        .page-option{ display:block; width:100%; text-align:left; background:transparent; border:none; padding:6px 8px; border-radius:8px; cursor:pointer; color:#e6eef8; }
+        .page-option:hover{ background: rgba(255,255,255,0.02); }
+        .page-option:focus{ outline:2px solid rgba(90,179,255,0.12); }
+
         .modal-backdrop{ position:fixed; inset:0; background: rgba(2,6,23,0.6); display:none; align-items:center; justify-content:center; z-index:1400; }
         .modal-backdrop.open{ display:flex; }
         .modal-card{ width: min(700px, 96vw); background: linear-gradient(180deg, rgba(11,18,28,0.98), rgba(6,10,16,0.95)); border:1px solid rgba(255,255,255,0.04); padding:16px; border-radius:12px; box-shadow: 0 24px 80px rgba(2,6,23,0.6); }
@@ -183,7 +193,7 @@
                         <option value="50">50</option>
                     </select>
 
-                    <div class="page-select-wrap" id="pageSizeWrap" tabindex="0" aria-haspopup="listbox" aria-expanded="false">
+                    <div class="page-select-wrap" id="pageSizeWrap" tabindex="0" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="pageSizeLabel">
                         <div class="page-select-value" id="pageSizeDisplay">10</div>
                         <div class="page-options" id="pageSizeOptions" role="listbox" tabindex="-1">
                             <button type="button" class="page-option" data-value="10">10</button>
@@ -207,7 +217,7 @@
                 </div>
                 <div style="display:flex;gap:8px;align-items:center;">
                     <button id="modalCancel" class="btn-ghost">Cancel</button>
-                    <button id="modalSave" class="btn-primary">Save</button>
+                    <button id="modalSave" type="button" class="btn-primary">Save</button>
                 </div>
             </div>
 
@@ -331,6 +341,33 @@
 
         createBtn.setAttribute('aria-label','Create device'); createBtn.addEventListener('click', (e)=> { lastFocusedEl = e.currentTarget; openModal('create'); });
 
+        // Save handler for create/edit device modal
+        // central save routine - used by both the Save button and the form submit
+        async function saveDevice(e){
+            try{ if (e && typeof e.preventDefault === 'function') e.preventDefault(); } catch(e){}
+            const id = (deviceIdEl && deviceIdEl.value) ? deviceIdEl.value.trim() : '';
+            const payload = { DeviceId: id || undefined, DeviceName: deviceNameEl.value.trim(), IMEI: imeiEl.value.trim() };
+            if (!payload.DeviceName){ showToast('Device name is required', { type:'error' }); try{ deviceNameEl.focus(); }catch(e){}; return; }
+            try{
+                modalSave.disabled = true; modalSave.setAttribute('aria-busy','true');
+                if (!id){
+                    const resp = await fetch('/v1/admin/devices', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+                    if (resp.ok){ showToast('Device created'); closeModal(); fetchDevices(); }
+                    else { const bt = await resp.text().catch(()=>null); showToast('Create failed: ' + (bt || resp.status), { type:'error' }); }
+                } else {
+                    const url = `/v1/admin/devices/${encodeURIComponent(id)}`;
+                    const resp = await fetch(url, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+                    if (resp.ok){ showToast('Device updated'); closeModal(); fetchDevices(); }
+                    else { const bt = await resp.text().catch(()=>null); showToast('Update failed: ' + (bt || resp.status), { type:'error' }); }
+                }
+            } catch (err){ console.error('saveDevice error', err); showToast('Save failed', { type:'error' }); }
+            finally{ try{ modalSave.disabled = false; modalSave.removeAttribute('aria-busy'); }catch(e){} }
+        }
+
+        // wire the named handler to both the button click and the form submit (Enter key)
+        try { if (modalSave) modalSave.addEventListener('click', saveDevice); } catch(e){}
+        try { const deviceForm = document.getElementById('deviceForm'); if (deviceForm) deviceForm.addEventListener('submit', saveDevice); } catch(e){}
+
         let offset = 0; let limit = Number(pageSizeEl.value) || 10; let currentPage = 1; let totalCount = null;
 
         async function fetchDevices(){
@@ -381,53 +418,52 @@
 
         pageSizeEl.addEventListener('change', ()=>{ offset = 0; fetchDevices(); });
 
-        // custom page size visual
-        if (pageSizeWrap){
-            pageSizeWrap.addEventListener('click', (e)=>{ e.stopPropagation(); const isOpen = pageSizeOptions.classList.toggle('open'); pageSizeWrap.setAttribute('aria-expanded', String(isOpen)); });
-            pageSizeWrap.addEventListener('keydown', (e)=>{ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const isOpen = pageSizeOptions.classList.toggle('open'); pageSizeWrap.setAttribute('aria-expanded', String(isOpen)); } if (e.key === 'ArrowDown'){ e.preventDefault(); pageOptionButtons[0] && pageOptionButtons[0].focus(); } });
+        // Page size custom selector wiring (match Users.cshtml behavior)
+        function updatePageSizeDisplay(){
+            try { pageSizeDisplay.innerText = pageSizeEl.value || '10'; } catch (e) {}
+            if (pageSizeWrap) pageSizeWrap.setAttribute('aria-expanded', pageSizeOptions.classList.contains('open'));
         }
-        pageOptionButtons.forEach(btn => { btn.addEventListener('click', ()=>{ const v = btn.getAttribute('data-value'); if (v){ pageSizeEl.value = v; pageSizeDisplay.innerText = v; } pageSizeOptions.classList.remove('open'); pageSizeWrap.setAttribute('aria-expanded','false'); offset = 0; fetchDevices(); }); });
 
-        // debounce search
-        const debouncedFetch = debounce(()=>{ offset = 0; fetchDevices(); }, 300);
-        searchInput.addEventListener('input', debouncedFetch);
-        searchInput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter'){ e.preventDefault(); offset = 0; fetchDevices(); } });
+        function openPageOptions(){
+            pageSizeOptions.classList.add('open');
+            if (pageSizeWrap) pageSizeWrap.setAttribute('aria-expanded','true');
+            try { pageSizeOptions.focus(); } catch (e) {}
+        }
+        function closePageOptions(){
+            pageSizeOptions.classList.remove('open');
+            if (pageSizeWrap) pageSizeWrap.setAttribute('aria-expanded','false');
+            try { pageSizeWrap.focus(); } catch (e) {}
+        }
 
-        modalSave.addEventListener('click', async (e)=>{
-            e.preventDefault(); const id = deviceIdEl.value && deviceIdEl.value.trim(); const payload = { DeviceId: id || undefined, DeviceName: deviceNameEl.value.trim(), IMEI: imeiEl.value.trim() };
-            try{
-                if (!payload.DeviceName){ showToast('Device name is required', { type:'error' }); deviceNameEl.focus(); return; }
-                modalSave.disabled = true; modalSave.setAttribute('aria-busy','true');
-                if (!id){
-                    const resp = await fetch('/v1/admin/devices', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-                    if (resp.ok){ showToast('Device created'); closeModal(); fetchDevices(); }
-                    else { const bt = await resp.text().catch(()=>null); showToast('Create failed: ' + (bt || resp.status), { type:'error' }); }
-                } else {
-                    const url = `/v1/admin/devices/${encodeURIComponent(id)}`;
-                    const resp = await fetch(url, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-                    if (resp.ok){ showToast('Device updated'); closeModal(); fetchDevices(); }
-                    else { const bt = await resp.text().catch(()=>null); showToast('Update failed: ' + (bt || resp.status), { type:'error' }); }
-                }
-            } catch (e){ console.error(e); showToast('Save failed', { type:'error' }); }
-            finally{ modalSave.disabled = false; modalSave.removeAttribute('aria-busy'); }
+        // initialize visual display to match the hidden select
+        try { updatePageSizeDisplay(); } catch (e) {}
+
+        if (pageSizeWrap){
+            pageSizeWrap.addEventListener('click', (e)=>{ e.stopPropagation(); if (pageSizeOptions.classList.contains('open')) closePageOptions(); else openPageOptions(); });
+            pageSizeWrap.addEventListener('keydown', (e)=>{
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (pageSizeOptions.classList.contains('open')) closePageOptions(); else openPageOptions(); }
+                if (e.key === 'ArrowDown'){ e.preventDefault(); openPageOptions(); const first = pageOptionButtons[0]; if (first) first.focus(); }
+            });
+        }
+
+        pageOptionButtons.forEach(btn => {
+            btn.addEventListener('click', ()=>{
+                const v = btn.getAttribute('data-value');
+                if (v){ pageSizeEl.value = v; updatePageSizeDisplay(); }
+                closePageOptions();
+                // reflect change
+                offset = 0; fetchDevices();
+            });
+            btn.addEventListener('keydown', (e)=>{
+                const idx = pageOptionButtons.indexOf(btn);
+                if (e.key === 'ArrowDown'){ e.preventDefault(); const next = pageOptionButtons[idx+1]; if (next) next.focus(); }
+                if (e.key === 'ArrowUp'){ e.preventDefault(); const prev = pageOptionButtons[idx-1]; if (prev) prev.focus(); }
+                if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); btn.click(); }
+            });
         });
 
-        async function deleteDevice(d, btn){
-            const id = d.DeviceId ?? d.deviceId ?? d.id ?? d.Id ?? null;
-            if (!id){ showToast('Cannot determine device id', {type:'error'}); return; }
-            if (!confirm('Delete device ' + (d.DeviceName ?? d.deviceName ?? d.Name ?? d.name ?? id) + '? This action cannot be undone.')) return;
-            try{
-                if (btn) btn.disabled = true; const url = `/v1/admin/devices/${encodeURIComponent(id)}`; const resp = await fetch(url, { method: 'DELETE' }); if (resp.ok){ showToast('Device deleted'); fetchDevices(); } else { const bt = await resp.text().catch(()=>null); showToast('Delete failed: ' + (bt || resp.status), { type:'error' }); }
-            } catch (e){ console.error(e); showToast('Delete failed', { type:'error' }); }
-            finally{ if (btn) btn.disabled = false; }
-        }
-
-        // init
-        updatePageSizeDisplay = function(){ try { pageSizeDisplay.innerText = pageSizeEl.value || '10'; } catch (e) {} };
-        updatePageSizeDisplay();
-
-        // Close custom page options on outside click
-        document.addEventListener('click', (e)=>{ if (!pageSizeWrap.contains(e.target)) pageSizeOptions.classList.remove('open'); });
+        // close options when clicking outside
+        document.addEventListener('click', (e)=>{ if (!pageSizeWrap) return; if (!pageSizeWrap.contains(e.target)) closePageOptions(); });
 
         // --- Assignments modal markup and logic ---
         // create modal DOM nodes for assignments (inserted into document.body)
